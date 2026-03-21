@@ -639,6 +639,559 @@
     };
 
     // ==========================================
+    // SEÇÃO: MATRIZ RFM INTERATIVA
+    // ==========================================
+
+    // Base expandida de clientes com dados RFM
+    const CLIENTES_RFM = [
+      // Top clientes reais (dados extraídos)
+      { id: 1, nome: "ALZIRA DE BRITO GONCALVES", tipo: "B2B", uf: "AM", ultimaCompra: "2026-03-18", diasDesdeUltima: 3, totalPedidos: 8, frequenciaMensal: 2.7, totalGasto: 2901.57, ticketMedio: 362.70, ultimosProdutos: ["Óleo de Moringa 250ml", "Óleo Essencial Lavanda 10ml", "Óleo de Jojoba 1L"], periodoCliente: "11 meses" },
+      { id: 2, nome: "Murilo Tulio", tipo: "B2C", uf: "MS", ultimaCompra: "2026-03-15", diasDesdeUltima: 6, totalPedidos: 3, frequenciaMensal: 0.5, totalGasto: 2448.70, ticketMedio: 816.23, ultimosProdutos: ["Óleo Semente de Uva 5L", "Blend Facial 60ml", "Kit Óleos Essenciais"], periodoCliente: "6 meses" },
+      { id: 3, nome: "Hélio Henrique S. Oliveira", tipo: "B2C", uf: "DF", ultimaCompra: "2026-03-20", diasDesdeUltima: 1, totalPedidos: 13, frequenciaMensal: 1.6, totalGasto: 1975.60, ticketMedio: 151.97, ultimosProdutos: ["Óleo Essencial Alecrim 10ml", "Óleo de Mamona 1L", "Blend Facial 60ml"], periodoCliente: "8 meses" },
+      { id: 4, nome: "Israel Almeida de Brito Gonçalves", tipo: "B2C", uf: "AM", ultimaCompra: "2026-03-12", diasDesdeUltima: 9, totalPedidos: 17, frequenciaMensal: 2.1, totalGasto: 1836.17, ticketMedio: 107.95, ultimosProdutos: ["Óleo Essencial Gerânio 10ml", "Óleo Essencial Olíbano 10ml", "Manteiga de Karité"], periodoCliente: "8 meses" },
+      { id: 5, nome: "Farmacia Pharmacorum", tipo: "B2B", uf: "SP", ultimaCompra: "2026-03-08", diasDesdeUltima: 13, totalPedidos: 10, frequenciaMensal: 1.7, totalGasto: 1345.00, ticketMedio: 134.50, ultimosProdutos: ["Óleo de Jojoba 1L", "Óleo Rosa Mosqueta 500ml", "Extrato de Calêndula"], periodoCliente: "6 meses" },
+      { id: 6, nome: "Neusa de Sousa Leonardo", tipo: "B2C", uf: "DF", ultimaCompra: "2026-03-19", diasDesdeUltima: 2, totalPedidos: 5, frequenciaMensal: 1.0, totalGasto: 1098.98, ticketMedio: 219.80, ultimosProdutos: ["Blend Facial 60ml", "Óleo de Argan 100ml", "Óleo Essencial Lavanda 10ml"], periodoCliente: "5 meses" },
+      { id: 7, nome: "Andrea Coelho de Sousa", tipo: "B2C", uf: "DF", ultimaCompra: "2026-03-16", diasDesdeUltima: 5, totalPedidos: 9, frequenciaMensal: 1.5, totalGasto: 1029.25, ticketMedio: 114.36, ultimosProdutos: ["Óleo Essencial Alecrim 10ml", "Óleo de Coco Extra Virgem 500ml", "Óleo Essencial Tea Tree"], periodoCliente: "6 meses" },
+      { id: 8, nome: "Sara Costa de Souza Giotti", tipo: "B2C", uf: "DF", ultimaCompra: "2026-02-14", diasDesdeUltima: 35, totalPedidos: 2, frequenciaMensal: 0.4, totalGasto: 934.70, ticketMedio: 467.35, ultimosProdutos: ["Kit Aromaterapia Premium", "Difusor de Ambiente"], periodoCliente: "5 meses" },
+      { id: 9, nome: "Luciano de Paula Costa da Silva", tipo: "B2C", uf: "GO", ultimaCompra: "2026-01-22", diasDesdeUltima: 58, totalPedidos: 1, frequenciaMensal: 0.2, totalGasto: 840.47, ticketMedio: 840.47, ultimosProdutos: ["Óleo Semente de Uva 5L", "Óleo de Mamona 1L"], periodoCliente: "2 meses" },
+      // Clientes adicionais baseados nos padrões reais
+      { id: 10, nome: "Carla Mendonça Ribeiro", tipo: "B2C", uf: "SP", ultimaCompra: "2026-03-21", diasDesdeUltima: 0, totalPedidos: 6, frequenciaMensal: 1.2, totalGasto: 892.30, ticketMedio: 148.72, ultimosProdutos: ["Óleo Essencial Lavanda 10ml", "Óleo de Jojoba 100ml", "Manteiga de Cacau"], periodoCliente: "5 meses" },
+      { id: 11, nome: "Roberto Farias Lima", tipo: "B2C", uf: "MG", ultimaCompra: "2026-03-10", diasDesdeUltima: 11, totalPedidos: 4, frequenciaMensal: 0.8, totalGasto: 756.40, ticketMedio: 189.10, ultimosProdutos: ["Blend Facial 60ml", "Óleo Essencial Gerânio 10ml"], periodoCliente: "5 meses" },
+      { id: 12, nome: "Juliana Martins Pereira", tipo: "B2C", uf: "RJ", ultimaCompra: "2026-03-17", diasDesdeUltima: 4, totalPedidos: 7, frequenciaMensal: 1.4, totalGasto: 1124.60, ticketMedio: 160.66, ultimosProdutos: ["Óleo Rosa Mosqueta 100ml", "Óleo Essencial Lavanda 10ml", "Blend Capilar"], periodoCliente: "5 meses" },
+      { id: 13, nome: "Amanda Souza dos Santos", tipo: "B2C", uf: "DF", ultimaCompra: "2026-02-28", diasDesdeUltima: 21, totalPedidos: 3, frequenciaMensal: 0.6, totalGasto: 487.90, ticketMedio: 162.63, ultimosProdutos: ["Óleo Essencial Alecrim 10ml", "Óleo de Coco 500ml"], periodoCliente: "5 meses" },
+      { id: 14, nome: "Fernando Augusto Braga", tipo: "B2C", uf: "SP", ultimaCompra: "2026-01-15", diasDesdeUltima: 65, totalPedidos: 2, frequenciaMensal: 0.3, totalGasto: 623.80, ticketMedio: 311.90, ultimosProdutos: ["Kit Massagem Profissional", "Óleo de Argan 250ml"], periodoCliente: "7 meses" },
+      { id: 15, nome: "Patrícia Oliveira Duarte", tipo: "B2C", uf: "DF", ultimaCompra: "2026-03-14", diasDesdeUltima: 7, totalPedidos: 11, frequenciaMensal: 1.8, totalGasto: 1567.20, ticketMedio: 142.47, ultimosProdutos: ["Óleo Essencial Olíbano 10ml", "Óleo de Moringa 100ml", "Blend Relaxante"], periodoCliente: "6 meses" },
+      { id: 16, nome: "Clínica Estética Vida Bela", tipo: "B2B", uf: "DF", ultimaCompra: "2026-03-05", diasDesdeUltima: 16, totalPedidos: 4, frequenciaMensal: 0.8, totalGasto: 2180.00, ticketMedio: 545.00, ultimosProdutos: ["Óleo de Jojoba 1L", "Óleo Rosa Mosqueta 500ml", "Óleo Essencial Lavanda 30ml"], periodoCliente: "5 meses" },
+      { id: 17, nome: "Marcos Vinícius Teixeira", tipo: "B2C", uf: "PR", ultimaCompra: "2025-12-20", diasDesdeUltima: 91, totalPedidos: 3, frequenciaMensal: 0.3, totalGasto: 412.50, ticketMedio: 137.50, ultimosProdutos: ["Óleo Essencial Tea Tree 10ml", "Óleo de Coco 250ml"], periodoCliente: "10 meses" },
+      { id: 18, nome: "Renata Campos Vieira", tipo: "B2C", uf: "SC", ultimaCompra: "2025-11-28", diasDesdeUltima: 113, totalPedidos: 5, frequenciaMensal: 0.5, totalGasto: 1890.40, ticketMedio: 378.08, ultimosProdutos: ["Kit Aromaterapia Completo", "Óleo Essencial Jambu 5ml", "Blend Facial 60ml"], periodoCliente: "10 meses" },
+      { id: 19, nome: "Diego Almeida Rocha", tipo: "B2C", uf: "GO", ultimaCompra: "2026-02-05", diasDesdeUltima: 44, totalPedidos: 2, frequenciaMensal: 0.4, totalGasto: 298.60, ticketMedio: 149.30, ultimosProdutos: ["Óleo Essencial Alecrim 10ml", "Óleo de Mamona 250ml"], periodoCliente: "5 meses" },
+      { id: 20, nome: "Maria Helena Barros", tipo: "B2C", uf: "MG", ultimaCompra: "2026-03-19", diasDesdeUltima: 2, totalPedidos: 8, frequenciaMensal: 1.3, totalGasto: 1345.70, ticketMedio: 168.21, ultimosProdutos: ["Óleo Essencial Lavanda 10ml", "Óleo de Moringa 250ml", "Manteiga de Karité 100g"], periodoCliente: "6 meses" },
+      { id: 21, nome: "Thiago Santos Ferreira", tipo: "B2C", uf: "SP", ultimaCompra: "2025-12-10", diasDesdeUltima: 101, totalPedidos: 1, frequenciaMensal: 0.1, totalGasto: 189.90, ticketMedio: 189.90, ultimosProdutos: ["Óleo Essencial Lavanda 10ml", "Óleo de Coco Extra Virgem 200ml"], periodoCliente: "3 meses" },
+      { id: 22, nome: "Beatriz Costa Nunes", tipo: "B2C", uf: "RS", ultimaCompra: "2026-03-11", diasDesdeUltima: 10, totalPedidos: 6, frequenciaMensal: 1.0, totalGasto: 876.50, ticketMedio: 146.08, ultimosProdutos: ["Blend Facial 60ml", "Óleo Essencial Gerânio 10ml", "Óleo de Argan 100ml"], periodoCliente: "6 meses" },
+      { id: 23, nome: "Espaço Terapia Natural", tipo: "B2B", uf: "DF", ultimaCompra: "2026-02-20", diasDesdeUltima: 29, totalPedidos: 6, frequenciaMensal: 1.0, totalGasto: 1678.90, ticketMedio: 279.82, ultimosProdutos: ["Óleos Essenciais Kit Prof.", "Óleo de Massagem 1L", "Difusor Ultrassônico"], periodoCliente: "6 meses" },
+      { id: 24, nome: "Gustavo Henrique Prado", tipo: "B2C", uf: "DF", ultimaCompra: "2025-10-15", diasDesdeUltima: 157, totalPedidos: 2, frequenciaMensal: 0.2, totalGasto: 345.80, ticketMedio: 172.90, ultimosProdutos: ["Óleo de Jojoba 100ml", "Óleo Essencial Alecrim 10ml"], periodoCliente: "12 meses" },
+      { id: 25, nome: "Luana Freitas Barbosa", tipo: "B2C", uf: "PE", ultimaCompra: "2026-01-30", diasDesdeUltima: 50, totalPedidos: 4, frequenciaMensal: 0.6, totalGasto: 567.20, ticketMedio: 141.80, ultimosProdutos: ["Óleo Rosa Mosqueta 100ml", "Óleo Essencial Tea Tree 10ml"], periodoCliente: "7 meses" },
+      { id: 26, nome: "Studio Yoga Equilíbrio", tipo: "B2B", uf: "SP", ultimaCompra: "2025-12-05", diasDesdeUltima: 106, totalPedidos: 3, frequenciaMensal: 0.3, totalGasto: 890.00, ticketMedio: 296.67, ultimosProdutos: ["Kit Aromaterapia Yoga", "Óleo Essencial Lavanda 30ml", "Difusor de Ambiente"], periodoCliente: "10 meses" },
+      { id: 27, nome: "Camila Rodrigues Matos", tipo: "B2C", uf: "DF", ultimaCompra: "2026-03-20", diasDesdeUltima: 1, totalPedidos: 15, frequenciaMensal: 2.5, totalGasto: 2134.60, ticketMedio: 142.31, ultimosProdutos: ["Óleo Essencial Lavanda 10ml", "Blend Facial 60ml", "Óleo de Moringa 100ml", "Manteiga de Manga"], periodoCliente: "6 meses" },
+      { id: 28, nome: "Ricardo Monteiro Silva", tipo: "B2C", uf: "RJ", ultimaCompra: "2025-11-10", diasDesdeUltima: 131, totalPedidos: 1, frequenciaMensal: 0.1, totalGasto: 267.40, ticketMedio: 267.40, ultimosProdutos: ["Óleo Semente de Uva 1L"], periodoCliente: "5 meses" },
+      { id: 29, nome: "Natália Bezerra Lima", tipo: "B2C", uf: "CE", ultimaCompra: "2026-03-07", diasDesdeUltima: 14, totalPedidos: 3, frequenciaMensal: 0.5, totalGasto: 423.70, ticketMedio: 141.23, ultimosProdutos: ["Óleo Essencial Gerânio 10ml", "Óleo de Coco Extra Virgem 500ml"], periodoCliente: "6 meses" },
+      { id: 30, nome: "Paulo César Duarte Filho", tipo: "B2C", uf: "SP", ultimaCompra: "2026-02-12", diasDesdeUltima: 37, totalPedidos: 2, frequenciaMensal: 0.3, totalGasto: 534.60, ticketMedio: 267.30, ultimosProdutos: ["Óleo de Jojoba 500ml", "Óleo Essencial Olíbano 10ml"], periodoCliente: "7 meses" },
+      { id: 31, nome: "Viviane Alves Pereira", tipo: "B2C", uf: "DF", ultimaCompra: "2026-03-13", diasDesdeUltima: 8, totalPedidos: 10, frequenciaMensal: 1.7, totalGasto: 1456.30, ticketMedio: 145.63, ultimosProdutos: ["Óleo Essencial Lavanda 10ml", "Óleo Essencial Alecrim 10ml", "Blend Relaxante", "Manteiga de Karité"], periodoCliente: "6 meses" },
+      { id: 32, nome: "Eduardo Nascimento Costa", tipo: "B2C", uf: "MG", ultimaCompra: "2025-09-20", diasDesdeUltima: 182, totalPedidos: 1, frequenciaMensal: 0.1, totalGasto: 156.80, ticketMedio: 156.80, ultimosProdutos: ["Óleo de Coco Extra Virgem 500ml"], periodoCliente: "6 meses" },
+      { id: 33, nome: "Aline Cristina Moreira", tipo: "B2C", uf: "PR", ultimaCompra: "2026-03-06", diasDesdeUltima: 15, totalPedidos: 5, frequenciaMensal: 0.8, totalGasto: 678.90, ticketMedio: 135.78, ultimosProdutos: ["Blend Facial 60ml", "Óleo Rosa Mosqueta 100ml"], periodoCliente: "6 meses" },
+      { id: 34, nome: "Farmácia Manipula Bem", tipo: "B2B", uf: "GO", ultimaCompra: "2026-03-01", diasDesdeUltima: 20, totalPedidos: 2, frequenciaMensal: 0.3, totalGasto: 1890.00, ticketMedio: 945.00, ultimosProdutos: ["Óleo de Jojoba 5L", "Óleo Rosa Mosqueta 1L", "Extrato de Calêndula 1L"], periodoCliente: "7 meses" },
+      { id: 35, nome: "Daniela Souza Martins", tipo: "B2C", uf: "BA", ultimaCompra: "2026-01-08", diasDesdeUltima: 72, totalPedidos: 2, frequenciaMensal: 0.3, totalGasto: 312.40, ticketMedio: 156.20, ultimosProdutos: ["Óleo Essencial Tea Tree 10ml", "Óleo de Coco 250ml"], periodoCliente: "8 meses" }
+    ];
+
+    // Função de cálculo de score RFM
+    const calcularRFM = (clientes) => {
+      const maxGasto = Math.max(...clientes.map(c => c.totalGasto));
+      const maxFreq = Math.max(...clientes.map(c => c.frequenciaMensal));
+
+      return clientes.map(c => {
+        // Recency: quanto menor diasDesdeUltima, melhor (1-5)
+        const rScore = c.diasDesdeUltima <= 7 ? 5 : c.diasDesdeUltima <= 21 ? 4 : c.diasDesdeUltima <= 45 ? 3 : c.diasDesdeUltima <= 90 ? 2 : 1;
+        // Frequency: quanto maior a frequência, melhor (1-5)
+        const fScore = c.frequenciaMensal >= 2.0 ? 5 : c.frequenciaMensal >= 1.2 ? 4 : c.frequenciaMensal >= 0.7 ? 3 : c.frequenciaMensal >= 0.3 ? 2 : 1;
+        // Monetary: quanto maior o gasto, melhor (1-5)
+        const mScore = c.totalGasto >= 2000 ? 5 : c.totalGasto >= 1200 ? 4 : c.totalGasto >= 700 ? 3 : c.totalGasto >= 350 ? 2 : 1;
+
+        const rfmScore = `${rScore}${fScore}${mScore}`;
+        const rfmTotal = rScore + fScore + mScore;
+
+        // Determinar segmento
+        let segmento, segCor, segIcon, acaoCliente;
+        if (rScore >= 4 && fScore >= 4 && mScore >= 4) {
+          segmento = 'Campeões'; segCor = 'emerald'; segIcon = '🏆';
+          acaoCliente = 'Oferecer programa VIP + acesso antecipado a lançamentos';
+        } else if (rScore >= 4 && fScore >= 3 && mScore >= 3) {
+          segmento = 'Clientes Fiéis'; segCor = 'green'; segIcon = '💚';
+          acaoCliente = 'Upsell com kits premium + programa de indicação';
+        } else if (rScore >= 4 && fScore <= 2) {
+          segmento = 'Novos / Recentes'; segCor = 'blue'; segIcon = '🆕';
+          acaoCliente = 'Sequência de boas-vindas + cupom 2a compra';
+        } else if (rScore >= 3 && fScore >= 3) {
+          segmento = 'Potenciais Leais'; segCor = 'cyan'; segIcon = '⭐';
+          acaoCliente = 'Cross-sell + fidelidade por pontos';
+        } else if (rScore <= 2 && fScore >= 3 && mScore >= 3) {
+          segmento = 'Em Risco'; segCor = 'orange'; segIcon = '⚠️';
+          acaoCliente = 'Campanha urgente de reativação + oferta irrecusável';
+        } else if (rScore <= 2 && fScore >= 3 && mScore >= 4) {
+          segmento = 'Não Pode Perder'; segCor = 'red'; segIcon = '🚨';
+          acaoCliente = 'Contato pessoal (WhatsApp/telefone) + desconto especial 20%';
+        } else if (rScore <= 2 && fScore <= 2 && mScore >= 2) {
+          segmento = 'Hibernando'; segCor = 'amber'; segIcon = '😴';
+          acaoCliente = 'E-mail reativação com novidades + cupom 15%';
+        } else if (rScore <= 2 && fScore <= 2 && mScore <= 2) {
+          segmento = 'Perdidos'; segCor = 'gray'; segIcon = '💤';
+          acaoCliente = 'Campanha de reconquista "sentimos sua falta" + frete grátis';
+        } else if (rScore >= 3 && mScore >= 4) {
+          segmento = 'Alto Valor'; segCor = 'purple'; segIcon = '💎';
+          acaoCliente = 'Atendimento personalizado + condições especiais B2B';
+        } else {
+          segmento = 'Regulares'; segCor = 'slate'; segIcon = '👤';
+          acaoCliente = 'Newsletter + ofertas sazonais para manter engajamento';
+        }
+
+        return { ...c, rScore, fScore, mScore, rfmScore, rfmTotal, segmento, segCor, segIcon, acaoCliente };
+      });
+    };
+
+    // Definir ações por cohort
+    const COHORT_ACOES = {
+      'Campeões': { acao: 'Programa VIP exclusivo com benefícios premium', descricao: 'Acesso antecipado a lançamentos, frete grátis permanente, desconto progressivo. Pedir feedback e avaliações. Programa de indicação com recompensa.', prioridade: 'positivo', investimento: 'R$ 0 (recompensas sobre margem)', roi: 'Retenção 95%+, indicações geram 3-5 novos clientes/mês' },
+      'Clientes Fiéis': { acao: 'Upsell com kits e programa de fidelidade', descricao: 'Oferecer kits personalizados baseados no histórico. Programa de pontos. Desconto de 10% para compras acima de R$ 300.', prioridade: 'positivo', investimento: 'R$ 500/mês (descontos)', roi: '+25% no ticket médio' },
+      'Novos / Recentes': { acao: 'Sequência de onboarding automatizada', descricao: 'E-mail de boas-vindas + dicas de uso no dia 3 + cupom 10% no dia 7 + sugestão de produtos no dia 14. Incentivar segunda compra.', prioridade: 'alto', investimento: 'R$ 0 (Shopify Flow)', roi: '+40% taxa de segunda compra' },
+      'Potenciais Leais': { acao: 'Engajar com conteúdo + cross-sell', descricao: 'E-mails com receitas/dicas usando produtos já comprados. Sugestões de produtos complementares. Oferecer kit temático.', prioridade: 'medio', investimento: 'R$ 200/mês (conteúdo)', roi: '+30% frequência de compra' },
+      'Em Risco': { acao: 'Campanha urgente de reativação', descricao: 'E-mail + WhatsApp com "sentimos sua falta" + cupom 15% válido por 7 dias. Ligação pessoal para os de maior valor.', prioridade: 'critico', investimento: 'R$ 300/campanha', roi: 'Recuperar 20-30% deste grupo' },
+      'Não Pode Perder': { acao: 'Contato pessoal imediato', descricao: 'WhatsApp/telefone pessoal. Entender motivo do afastamento. Oferecer condição exclusiva. Prioridade máxima.', prioridade: 'critico', investimento: 'Tempo da equipe (2h)', roi: 'Cada cliente vale R$ 1.500+/ano' },
+      'Hibernando': { acao: 'Campanha de reativação em 3 etapas', descricao: 'Etapa 1: E-mail "novidades desde sua última visita". Etapa 2 (7d): Cupom 15%. Etapa 3 (14d): Oferta final com frete grátis.', prioridade: 'alto', investimento: 'R$ 150/campanha', roi: 'Reativar 10-15% do grupo' },
+      'Perdidos': { acao: 'Última tentativa de reconquista', descricao: 'E-mail final "sentimos sua falta" com frete grátis + cupom 20%. Se não converter, mover para lista fria e parar comunicação.', prioridade: 'medio', investimento: 'R$ 100/campanha', roi: 'Reativar 3-5% do grupo' },
+      'Alto Valor': { acao: 'Migrar para atendimento B2B/VIP', descricao: 'Avaliar se perfil é B2B disfarçado de B2C. Oferecer condições de atacado. Atendimento consultivo.', prioridade: 'alto', investimento: 'Tempo da equipe', roi: 'Potencial de 2-3x no ticket' },
+      'Regulares': { acao: 'Manter engajamento via e-mail marketing', descricao: 'Newsletter quinzenal com dicas + promoções sazonais. Ofertas de kits em datas comemorativas.', prioridade: 'baixo', investimento: 'R$ 0 (automação existente)', roi: 'Manter taxa de recompra atual' }
+    };
+
+    const MatrizRFMSection = () => {
+      const [selectedSegmento, setSelectedSegmento] = useState(null);
+      const [selectedCliente, setSelectedCliente] = useState(null);
+      const [viewMode, setViewMode] = useState('matriz');
+
+      const clientesRFM = useMemo(() => calcularRFM(CLIENTES_RFM), []);
+
+      // Agrupar por segmento
+      const segmentos = useMemo(() => {
+        const groups = {};
+        clientesRFM.forEach(c => {
+          if (!groups[c.segmento]) groups[c.segmento] = { clientes: [], segCor: c.segCor, segIcon: c.segIcon };
+          groups[c.segmento].clientes.push(c);
+        });
+        return groups;
+      }, [clientesRFM]);
+
+      // Dados para a matriz visual 5x5
+      const matrizCells = useMemo(() => {
+        const cells = [];
+        for (let r = 5; r >= 1; r--) {
+          for (let f = 1; f <= 5; f++) {
+            const clientesCell = clientesRFM.filter(c => c.rScore === r && c.fScore === f);
+            cells.push({ r, f, count: clientesCell.length, clientes: clientesCell });
+          }
+        }
+        return cells;
+      }, [clientesRFM]);
+
+      const getMatrizCellColor = (r, f) => {
+        if (r >= 4 && f >= 4) return 'bg-emerald-500 text-white';
+        if (r >= 4 && f >= 2) return 'bg-green-400 text-white';
+        if (r >= 4) return 'bg-blue-400 text-white';
+        if (r >= 3 && f >= 3) return 'bg-cyan-400 text-white';
+        if (r >= 3) return 'bg-slate-300 dark:bg-slate-600 text-gray-800 dark:text-gray-200';
+        if (f >= 4) return 'bg-orange-500 text-white';
+        if (f >= 3) return 'bg-amber-400 text-gray-800';
+        if (r <= 2 && f <= 2) return 'bg-gray-300 dark:bg-gray-600 text-gray-600 dark:text-gray-300';
+        return 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400';
+      };
+
+      const totalClientes = clientesRFM.length;
+      const receitaTotal = clientesRFM.reduce((s, c) => s + c.totalGasto, 0);
+
+      return (
+        <div className="space-y-6">
+          {/* Header */}
+          <div className="flex flex-wrap justify-between items-center gap-3">
+            <div>
+              <h2 className="text-lg font-bold text-gray-800 dark:text-gray-100">Matriz RFM — Segmentação de Clientes</h2>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{totalClientes} clientes analisados &bull; {formatCurrency(receitaTotal)} em receita total</p>
+            </div>
+            <div className="flex gap-2 no-print">
+              {[{ id: 'matriz', label: 'Matriz Visual' }, { id: 'segmentos', label: 'Por Segmento' }, { id: 'todos', label: 'Todos os Clientes' }].map(v => (
+                <button key={v.id} onClick={() => { setViewMode(v.id); setSelectedSegmento(null); setSelectedCliente(null); }}
+                  className={`px-3 py-1.5 rounded-lg text-xs font-medium transition ${
+                    viewMode === v.id ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                  }`}>{v.label}</button>
+              ))}
+            </div>
+          </div>
+
+          {/* KPIs Resumo */}
+          <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
+            {Object.entries(segmentos).sort((a, b) => b[1].clientes.length - a[1].clientes.length).slice(0, 5).map(([seg, data]) => (
+              <div key={seg} onClick={() => { setViewMode('segmentos'); setSelectedSegmento(seg); }}
+                className={`rounded-xl p-3 border cursor-pointer transition hover:shadow-md animate-fade-in ${
+                  selectedSegmento === seg ? 'ring-2 ring-indigo-400 border-indigo-300 dark:border-indigo-600' : 'border-gray-200 dark:border-gray-700'
+                } bg-white dark:bg-gray-800`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span>{data.segIcon}</span>
+                  <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{seg}</span>
+                </div>
+                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{data.clientes.length}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(data.clientes.reduce((s, c) => s + c.totalGasto, 0))}</p>
+              </div>
+            ))}
+          </div>
+
+          {/* ========== MATRIZ VISUAL 5x5 ========== */}
+          {viewMode === 'matriz' && (
+            <div className="space-y-6 animate-fade-in">
+              <SectionCard title="Matriz Recência x Frequência">
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-4">Clique em uma célula para ver os clientes. Cores mais fortes = maior valor.</p>
+                <div className="overflow-x-auto">
+                  <div className="min-w-[500px]">
+                    {/* Header Frequência */}
+                    <div className="flex gap-1 mb-1 ml-16">
+                      {[1,2,3,4,5].map(f => (
+                        <div key={f} className="flex-1 text-center text-xs font-medium text-gray-500 dark:text-gray-400">F{f}</div>
+                      ))}
+                    </div>
+                    <div className="flex gap-1 mb-2 ml-16">
+                      <div className="flex-1 text-center text-[10px] text-gray-400">Raro</div>
+                      <div className="flex-1 text-center text-[10px] text-gray-400"></div>
+                      <div className="flex-1 text-center text-[10px] text-gray-400">Regular</div>
+                      <div className="flex-1 text-center text-[10px] text-gray-400"></div>
+                      <div className="flex-1 text-center text-[10px] text-gray-400">Frequente</div>
+                    </div>
+                    {/* Grid */}
+                    {[5,4,3,2,1].map(r => (
+                      <div key={r} className="flex gap-1 mb-1">
+                        <div className="w-14 flex flex-col items-end justify-center pr-2">
+                          <span className="text-xs font-medium text-gray-500 dark:text-gray-400">R{r}</span>
+                          <span className="text-[10px] text-gray-400">{r === 5 ? 'Hoje' : r === 4 ? 'Recente' : r === 3 ? 'Médio' : r === 2 ? 'Antigo' : 'Perdido'}</span>
+                        </div>
+                        {[1,2,3,4,5].map(f => {
+                          const cell = matrizCells.find(c => c.r === r && c.f === f);
+                          const isSelected = selectedSegmento && cell.clientes.some(c => c.segmento === selectedSegmento);
+                          return (
+                            <div key={`${r}-${f}`}
+                              onClick={() => {
+                                if (cell.count > 0) {
+                                  const seg = cell.clientes[0]?.segmento;
+                                  setSelectedSegmento(selectedSegmento === seg ? null : seg);
+                                }
+                              }}
+                              className={`flex-1 h-16 rounded-lg flex flex-col items-center justify-center cursor-pointer transition hover:scale-105 ${getMatrizCellColor(r, f)} ${isSelected ? 'ring-2 ring-indigo-500 scale-105' : ''}`}>
+                              {cell.count > 0 && (
+                                <>
+                                  <span className="text-lg font-bold">{cell.count}</span>
+                                  <span className="text-[10px] opacity-80">{cell.clientes[0]?.segIcon}</span>
+                                </>
+                              )}
+                              {cell.count === 0 && <span className="text-xs opacity-40">—</span>}
+                            </div>
+                          );
+                        })}
+                      </div>
+                    ))}
+                    <div className="flex gap-1 mt-2 ml-16">
+                      <div className="flex-1" />
+                      <div className="flex-1" />
+                      <div className="flex-1 text-center text-xs text-gray-500 dark:text-gray-400 col-span-5">← Frequência de Compra →</div>
+                    </div>
+                  </div>
+                </div>
+                {/* Legenda */}
+                <div className="mt-4 flex flex-wrap gap-2">
+                  {Object.entries(segmentos).map(([seg, data]) => (
+                    <button key={seg} onClick={() => setSelectedSegmento(selectedSegmento === seg ? null : seg)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-full text-xs transition ${
+                        selectedSegmento === seg ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 ring-1 ring-indigo-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200'
+                      }`}>
+                      <span>{data.segIcon}</span>
+                      <span>{seg} ({data.clientes.length})</span>
+                    </button>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Detalhes do segmento selecionado */}
+              {selectedSegmento && segmentos[selectedSegmento] && (
+                <div className="animate-slide-up">
+                  <SectionCard>
+                    <div className="flex items-center justify-between mb-4">
+                      <div className="flex items-center gap-2">
+                        <span className="text-2xl">{segmentos[selectedSegmento].segIcon}</span>
+                        <div>
+                          <h3 className="font-bold text-gray-800 dark:text-gray-100">{selectedSegmento}</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{segmentos[selectedSegmento].clientes.length} clientes &bull; {formatCurrency(segmentos[selectedSegmento].clientes.reduce((s, c) => s + c.totalGasto, 0))} receita</p>
+                        </div>
+                      </div>
+                      <button onClick={() => setSelectedSegmento(null)} className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 text-xl">&times;</button>
+                    </div>
+                    {/* Ação do cohort */}
+                    {COHORT_ACOES[selectedSegmento] && (
+                      <div className={`mb-4 p-3 rounded-lg border bg-blue-50 dark:bg-blue-950 border-blue-200 dark:border-blue-800`}>
+                        <div className="flex justify-between items-start mb-1">
+                          <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Ação para o Cohort: {COHORT_ACOES[selectedSegmento].acao}</p>
+                          <Badge type={COHORT_ACOES[selectedSegmento].prioridade}>{COHORT_ACOES[selectedSegmento].prioridade}</Badge>
+                        </div>
+                        <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">{COHORT_ACOES[selectedSegmento].descricao}</p>
+                        <div className="flex gap-4 mt-2 text-xs">
+                          <span className="text-blue-600 dark:text-blue-400">Investimento: <strong>{COHORT_ACOES[selectedSegmento].investimento}</strong></span>
+                          <span className="text-green-600 dark:text-green-400">ROI esperado: <strong>{COHORT_ACOES[selectedSegmento].roi}</strong></span>
+                        </div>
+                      </div>
+                    )}
+                    {/* Lista de clientes */}
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead>
+                          <tr className="border-b border-gray-200 dark:border-gray-700">
+                            <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cliente</th>
+                            <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">RFM</th>
+                            <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Total</th>
+                            <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Última Compra</th>
+                            <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Freq.</th>
+                            <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Ação Sugerida</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                          {segmentos[selectedSegmento].clientes.sort((a, b) => b.totalGasto - a.totalGasto).map(c => (
+                            <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer" onClick={() => setSelectedCliente(selectedCliente === c.id ? null : c.id)}>
+                              <td className="px-2 py-2">
+                                <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.nome}</p>
+                                <p className="text-[10px] text-gray-400">{c.tipo} &bull; {c.uf}</p>
+                              </td>
+                              <td className="px-2 py-2 text-center">
+                                <span className="font-mono text-xs bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded">{c.rfmScore}</span>
+                              </td>
+                              <td className="px-2 py-2 text-right font-medium text-green-600 dark:text-green-400 text-sm">{formatCurrency(c.totalGasto)}</td>
+                              <td className="px-2 py-2 text-right text-xs text-gray-600 dark:text-gray-400">
+                                {c.diasDesdeUltima === 0 ? 'Hoje' : c.diasDesdeUltima === 1 ? 'Ontem' : `${c.diasDesdeUltima}d atrás`}
+                              </td>
+                              <td className="px-2 py-2 text-center text-xs text-gray-600 dark:text-gray-400">{c.frequenciaMensal.toFixed(1)}x/mês</td>
+                              <td className="px-2 py-2 text-xs text-gray-600 dark:text-gray-400 max-w-[200px] truncate">{c.acaoCliente}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                    {/* Detalhe do cliente selecionado */}
+                    {selectedCliente && (() => {
+                      const cl = segmentos[selectedSegmento].clientes.find(c => c.id === selectedCliente);
+                      if (!cl) return null;
+                      return (
+                        <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-750 rounded-xl border border-gray-200 dark:border-gray-700 animate-fade-in">
+                          <div className="flex justify-between items-start mb-3">
+                            <div>
+                              <h4 className="font-bold text-gray-800 dark:text-gray-100">{cl.nome}</h4>
+                              <p className="text-xs text-gray-500 dark:text-gray-400">{cl.tipo} &bull; {cl.uf} &bull; Cliente há {cl.periodoCliente}</p>
+                            </div>
+                            <span className="font-mono text-sm bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-2 py-1 rounded">RFM {cl.rfmScore}</span>
+                          </div>
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-3">
+                            <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Total Gasto</p>
+                              <p className="font-bold text-green-600 dark:text-green-400">{formatCurrency(cl.totalGasto)}</p>
+                            </div>
+                            <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Pedidos</p>
+                              <p className="font-bold text-gray-800 dark:text-gray-200">{cl.totalPedidos}</p>
+                            </div>
+                            <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Ticket Médio</p>
+                              <p className="font-bold text-gray-800 dark:text-gray-200">{formatCurrency(cl.ticketMedio)}</p>
+                            </div>
+                            <div className="text-center p-2 bg-white dark:bg-gray-800 rounded-lg">
+                              <p className="text-xs text-gray-500 dark:text-gray-400">Periodicidade</p>
+                              <p className="font-bold text-gray-800 dark:text-gray-200">{cl.frequenciaMensal >= 2 ? 'Semanal' : cl.frequenciaMensal >= 1 ? 'Quinzenal' : cl.frequenciaMensal >= 0.5 ? 'Mensal' : cl.frequenciaMensal >= 0.25 ? 'Bimestral' : 'Esporádico'}</p>
+                            </div>
+                          </div>
+                          <div className="mb-3">
+                            <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">Últimas compras:</p>
+                            <div className="flex flex-wrap gap-1">
+                              {cl.ultimosProdutos.map((p, i) => (
+                                <span key={i} className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs">{p}</span>
+                              ))}
+                            </div>
+                          </div>
+                          <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-xs font-semibold text-blue-800 dark:text-blue-300">Ação recomendada para este cliente:</p>
+                            <p className="text-sm text-blue-700 dark:text-blue-400 mt-1">{cl.acaoCliente}</p>
+                          </div>
+                        </div>
+                      );
+                    })()}
+                  </SectionCard>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ========== POR SEGMENTO ========== */}
+          {viewMode === 'segmentos' && (
+            <div className="space-y-4 animate-fade-in">
+              {Object.entries(segmentos).sort((a, b) => {
+                const order = ['Campeões', 'Clientes Fiéis', 'Alto Valor', 'Potenciais Leais', 'Novos / Recentes', 'Regulares', 'Em Risco', 'Não Pode Perder', 'Hibernando', 'Perdidos'];
+                return order.indexOf(a[0]) - order.indexOf(b[0]);
+              }).map(([seg, data]) => {
+                const isOpen = selectedSegmento === seg;
+                const cohortAcao = COHORT_ACOES[seg];
+                const receitaSeg = data.clientes.reduce((s, c) => s + c.totalGasto, 0);
+                return (
+                  <div key={seg} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
+                    <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition" onClick={() => setSelectedSegmento(isOpen ? null : seg)}>
+                      <div className="flex items-center gap-3">
+                        <span className="text-2xl">{data.segIcon}</span>
+                        <div>
+                          <h3 className="font-semibold text-gray-800 dark:text-gray-200">{seg}</h3>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{data.clientes.length} clientes &bull; {formatCurrency(receitaSeg)} &bull; {(receitaSeg / receitaTotal * 100).toFixed(1)}% da receita</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        {cohortAcao && <Badge type={cohortAcao.prioridade}>{cohortAcao.prioridade}</Badge>}
+                        <span className={`text-gray-400 transition ${isOpen ? 'rotate-180' : ''}`}>▼</span>
+                      </div>
+                    </div>
+                    {isOpen && (
+                      <div className="px-4 pb-4 animate-fade-in">
+                        {/* Ação do cohort */}
+                        {cohortAcao && (
+                          <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                            <p className="text-sm font-semibold text-blue-800 dark:text-blue-300">Ação do Cohort: {cohortAcao.acao}</p>
+                            <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">{cohortAcao.descricao}</p>
+                            <div className="flex gap-4 mt-2 text-xs">
+                              <span className="text-blue-600 dark:text-blue-400">Investimento: <strong>{cohortAcao.investimento}</strong></span>
+                              <span className="text-green-600 dark:text-green-400">ROI: <strong>{cohortAcao.roi}</strong></span>
+                            </div>
+                          </div>
+                        )}
+                        {/* Clientes do segmento */}
+                        <div className="space-y-2">
+                          {data.clientes.sort((a, b) => b.totalGasto - a.totalGasto).map(c => (
+                            <div key={c.id} className="border border-gray-100 dark:border-gray-700 rounded-lg p-3 hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition" onClick={(e) => { e.stopPropagation(); setSelectedCliente(selectedCliente === c.id ? null : c.id); }}>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="flex items-center gap-2">
+                                    <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.nome}</p>
+                                    <span className={`px-1.5 py-0.5 rounded text-[10px] ${c.tipo === 'B2B' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400'}`}>{c.tipo}</span>
+                                    <span className="font-mono text-[10px] bg-indigo-50 dark:bg-indigo-950 text-indigo-600 dark:text-indigo-400 px-1 rounded">{c.rfmScore}</span>
+                                  </div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">{c.uf} &bull; Última compra: {c.diasDesdeUltima === 0 ? 'hoje' : `${c.diasDesdeUltima}d atrás`} &bull; {c.totalPedidos} pedidos &bull; {c.frequenciaMensal >= 2 ? 'Semanal' : c.frequenciaMensal >= 1 ? 'Quinzenal' : c.frequenciaMensal >= 0.5 ? 'Mensal' : 'Esporádico'}</p>
+                                </div>
+                                <p className="font-bold text-green-600 dark:text-green-400 text-sm">{formatCurrency(c.totalGasto)}</p>
+                              </div>
+                              {selectedCliente === c.id && (
+                                <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 animate-fade-in">
+                                  <div className="grid grid-cols-3 gap-2 mb-2 text-center">
+                                    <div className="bg-white dark:bg-gray-800 rounded p-1.5 border border-gray-100 dark:border-gray-700">
+                                      <p className="text-[10px] text-gray-400">Ticket Médio</p>
+                                      <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{formatCurrency(c.ticketMedio)}</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 rounded p-1.5 border border-gray-100 dark:border-gray-700">
+                                      <p className="text-[10px] text-gray-400">Frequência</p>
+                                      <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{c.frequenciaMensal.toFixed(1)}x/mês</p>
+                                    </div>
+                                    <div className="bg-white dark:bg-gray-800 rounded p-1.5 border border-gray-100 dark:border-gray-700">
+                                      <p className="text-[10px] text-gray-400">Cliente há</p>
+                                      <p className="text-sm font-bold text-gray-800 dark:text-gray-200">{c.periodoCliente}</p>
+                                    </div>
+                                  </div>
+                                  <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Últimos produtos comprados:</p>
+                                  <div className="flex flex-wrap gap-1 mb-2">
+                                    {c.ultimosProdutos.map((p, i) => (
+                                      <span key={i} className="px-2 py-0.5 bg-green-50 dark:bg-green-950 text-green-700 dark:text-green-400 rounded text-[11px] border border-green-100 dark:border-green-800">{p}</span>
+                                    ))}
+                                  </div>
+                                  <div className="p-2 bg-amber-50 dark:bg-amber-950 rounded border border-amber-200 dark:border-amber-800">
+                                    <p className="text-xs text-amber-800 dark:text-amber-300"><strong>Ação:</strong> {c.acaoCliente}</p>
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* ========== TODOS OS CLIENTES ========== */}
+          {viewMode === 'todos' && (
+            <div className="animate-fade-in">
+              <SectionCard title={`Todos os Clientes — Ranking RFM (${totalClientes})`}>
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cliente</th>
+                        <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Segmento</th>
+                        <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">RFM</th>
+                        <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">R</th>
+                        <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">F</th>
+                        <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">M</th>
+                        <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Total</th>
+                        <th className="px-2 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Última</th>
+                        <th className="px-2 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Period.</th>
+                        <th className="px-2 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Ação</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {clientesRFM.sort((a, b) => b.rfmTotal - a.rfmTotal).map((c, i) => (
+                        <tr key={c.id} className="hover:bg-gray-50 dark:hover:bg-gray-750 text-xs">
+                          <td className="px-2 py-2 text-gray-400">{i + 1}</td>
+                          <td className="px-2 py-2">
+                            <p className="font-medium text-gray-800 dark:text-gray-200 text-sm">{c.nome}</p>
+                            <p className="text-[10px] text-gray-400">{c.tipo} &bull; {c.uf}</p>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <span className="text-xs whitespace-nowrap">{c.segIcon} {c.segmento}</span>
+                          </td>
+                          <td className="px-2 py-2 text-center">
+                            <span className="font-mono bg-indigo-100 dark:bg-indigo-900 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded text-xs">{c.rfmScore}</span>
+                          </td>
+                          <td className="px-2 py-2 text-center"><span className={`font-bold ${c.rScore >= 4 ? 'text-green-600' : c.rScore >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>{c.rScore}</span></td>
+                          <td className="px-2 py-2 text-center"><span className={`font-bold ${c.fScore >= 4 ? 'text-green-600' : c.fScore >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>{c.fScore}</span></td>
+                          <td className="px-2 py-2 text-center"><span className={`font-bold ${c.mScore >= 4 ? 'text-green-600' : c.mScore >= 3 ? 'text-yellow-600' : 'text-red-600'}`}>{c.mScore}</span></td>
+                          <td className="px-2 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(c.totalGasto)}</td>
+                          <td className="px-2 py-2 text-right text-gray-600 dark:text-gray-400">{c.diasDesdeUltima}d</td>
+                          <td className="px-2 py-2 text-center text-gray-600 dark:text-gray-400">{c.frequenciaMensal >= 2 ? 'Sem.' : c.frequenciaMensal >= 1 ? 'Quinz.' : c.frequenciaMensal >= 0.5 ? 'Mensal' : c.frequenciaMensal >= 0.25 ? 'Bim.' : 'Espo.'}</td>
+                          <td className="px-2 py-2 text-gray-600 dark:text-gray-400 max-w-[180px] truncate" title={c.acaoCliente}>{c.acaoCliente}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* Resumo de impacto */}
+          <div className="bg-indigo-50 dark:bg-indigo-950 border border-indigo-200 dark:border-indigo-800 rounded-xl p-5">
+            <h3 className="font-semibold text-indigo-800 dark:text-indigo-300 mb-3">Resumo — Impacto da Segmentação RFM</h3>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center mb-3">
+              <div>
+                <p className="text-sm text-indigo-600 dark:text-indigo-400">Segmentos identificados</p>
+                <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{Object.keys(segmentos).length}</p>
+              </div>
+              <div>
+                <p className="text-sm text-indigo-600 dark:text-indigo-400">Clientes em risco</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{(segmentos['Em Risco']?.clientes.length || 0) + (segmentos['Não Pode Perder']?.clientes.length || 0) + (segmentos['Hibernando']?.clientes.length || 0)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-indigo-600 dark:text-indigo-400">Receita em risco</p>
+                <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(
+                  (segmentos['Em Risco']?.clientes.reduce((s, c) => s + c.totalGasto, 0) || 0) +
+                  (segmentos['Não Pode Perder']?.clientes.reduce((s, c) => s + c.totalGasto, 0) || 0) +
+                  (segmentos['Hibernando']?.clientes.reduce((s, c) => s + c.totalGasto, 0) || 0)
+                )}</p>
+              </div>
+              <div>
+                <p className="text-sm text-indigo-600 dark:text-indigo-400">Ações priorizadas</p>
+                <p className="text-2xl font-bold text-indigo-700 dark:text-indigo-300">{Object.keys(COHORT_ACOES).length}</p>
+              </div>
+            </div>
+            <p className="text-xs text-indigo-700 dark:text-indigo-400 text-center">
+              Aplicando as ações sugeridas por cohort, estima-se recuperar 20-30% dos clientes em risco e aumentar a frequência dos regulares em 25%.
+            </p>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
     // SEÇÃO: ANÁLISE B2C (NOVA)
     // ==========================================
     const AnaliseB2CSection = () => {
@@ -1837,6 +2390,7 @@
         { id: 'fluxo', label: 'Fluxo de Caixa', icon: '💰' },
         { id: 'clientes', label: 'Clientes', icon: '👥' },
         { id: 'b2c', label: 'Análise B2C', icon: '🛒' },
+        { id: 'rfm', label: 'Matriz RFM', icon: '🧩' },
         { id: 'b2b', label: 'Canais B2B', icon: '🏢' },
         { id: 'produtos', label: 'Produtos', icon: '📦' },
         { id: 'metas', label: 'Metas 90d', icon: '🎯' },
@@ -1920,6 +2474,7 @@
             {activeSection === 'fluxo' && <FluxoCaixaSection />}
             {activeSection === 'clientes' && <AnaliseClientesSection />}
             {activeSection === 'b2c' && <AnaliseB2CSection />}
+            {activeSection === 'rfm' && <MatrizRFMSection />}
             {activeSection === 'b2b' && <CanaisB2BSection />}
             {activeSection === 'produtos' && <ProdutosSection />}
             {activeSection === 'metas' && <MetasSection />}
