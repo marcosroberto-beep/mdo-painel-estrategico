@@ -1,0 +1,1448 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mundo dos Óleos - Painel Estratégico v3</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          animation: {
+            'fade-in': 'fadeIn 0.3s ease-out',
+            'slide-up': 'slideUp 0.4s ease-out',
+            'pulse-slow': 'pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+          },
+          keyframes: {
+            fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+            slideUp: { '0%': { opacity: '0', transform: 'translateY(12px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } },
+          }
+        }
+      }
+    }
+  </script>
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" crossorigin></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+  <style>
+    * { -webkit-font-smoothing: antialiased; }
+    .scrollbar-hide::-webkit-scrollbar { display: none; }
+    .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+    @media print { .no-print { display: none !important; } }
+  </style>
+</head>
+<body class="transition-colors duration-300">
+  <div id="root"></div>
+  <script type="text/babel">
+    const { useState, useMemo, useEffect, useCallback } = React;
+
+    // ==========================================
+    // DADOS CONSOLIDADOS (COMPLETO)
+    // ==========================================
+    const DADOS = {
+      empresa: {
+        razaoSocial: "MOL COMERCIO VAR DE PROD NAT LTD",
+        nomeFantasia: "Mundo dos Óleos",
+        cnpj: "33.460.511/0001-45",
+        endereco: "CLSW 504, Bl. B, Lj. 46 - Brasília/DF",
+        banco: { nome: "CEF", agencia: "01502", conta: "000578237293-8" },
+        equipe: 3,
+        anosOperacao: 20,
+        totalSKUs: 3000,
+        baseClientes: 49000,
+        taxaRecompra: 44
+      },
+      fluxoCaixa: {
+        periodoAtual: "MAR/2026 (01-21)",
+        saldoInicial: 25829.68,
+        saldoFinal: 5896.21,
+        variacao: -19933.47,
+        historico: [
+          { mes: "DEZ/25", saldoInicial: 1904.63, saldoFinal: 23440.83, variacao: 21536.20, aportes: 61570.21, receita: null, pedidos: null, ticket: null },
+          { mes: "JAN/26", saldoInicial: 23440.83, saldoFinal: 27653.69, variacao: 4212.86, aportes: 41125.51, receita: null, pedidos: null, ticket: null },
+          { mes: "FEV/26", saldoInicial: null, saldoFinal: null, variacao: null, aportes: null, receita: 70923.25, pedidos: 370, ticket: 191.68 },
+          { mes: "MAR/26", saldoInicial: 25829.68, saldoFinal: 5896.21, variacao: -19933.47, aportes: 15593.17, receita: 43890.65, pedidos: 264, ticket: 166.25 }
+        ]
+      },
+      receita: {
+        bruta: 43890.65,
+        pedidos: 264,
+        ticketMedio: 166.25,
+        cmv: 9977.58,
+        lucroBruto: 33913.07,
+        markup: 77.3
+      },
+      comparativo: {
+        receitaAnterior: 70923.25,
+        receitaAtual: 43890.65,
+        variacaoReceita: -38.1,
+        pedidosAnterior: 370,
+        pedidosAtual: 264,
+        variacaoPedidos: -28.6,
+        ticketAnterior: 191.68,
+        ticketAtual: 166.25,
+        variacaoTicket: -13.3
+      },
+      custos: {
+        fixos: [
+          { categoria: "Marketing", item: "Webi Marketing Digital", valor: 8850.00, percent: 20.2, criticidade: "alta" },
+          { categoria: "Tecnologia", item: "RD Station (RD Gestão)", valor: 6072.01, percent: 13.8, criticidade: "media" },
+          { categoria: "Ocupação", item: "Aluguel (Alpha Brasília)", valor: 2665.10, percent: 6.1, criticidade: "baixa" },
+          { categoria: "Ocupação", item: "Condomínio", valor: 1059.13, percent: 2.4, criticidade: "baixa" },
+          { categoria: "Administrativo", item: "Contabilidade (Arbrent)", valor: 1150.00, percent: 2.6, criticidade: "baixa" },
+          { categoria: "Utilities", item: "Energia (Neoenergia)", valor: 236.60, percent: 0.5, criticidade: "baixa" },
+          { categoria: "Utilities", item: "Água (CAESB)", valor: 128.32, percent: 0.3, criticidade: "baixa" },
+          { categoria: "Utilities", item: "Telefone/Internet", valor: 408.51, percent: 0.9, criticidade: "baixa" },
+          { categoria: "Bancário", item: "Cesta de Serviços CEF", valor: 189.00, percent: 0.4, criticidade: "baixa" },
+          { categoria: "Seguro", item: "Caixa Vida e Previdência", valor: 133.00, percent: 0.3, criticidade: "baixa" }
+        ],
+        totalFixo: 20891.67,
+        variaveis: [
+          { fornecedor: "EBPM Comercial", tipo: "Embalagens/Insumos", valor: 10338.98 },
+          { fornecedor: "Sta Efigênia", tipo: "Matéria-prima/Óleos", valor: 2895.97 },
+          { fornecedor: "Via Aroma", tipo: "Óleos Essenciais", valor: 2241.54 },
+          { fornecedor: "Correios", tipo: "Frete/Envios", valor: 4859.05 },
+          { fornecedor: "Casa da Química", tipo: "Insumos", valor: 659.00 },
+          { fornecedor: "China Atacadista", tipo: "Embalagens", valor: 256.18 }
+        ],
+        totalVariavel: 21250.72,
+        financeiras: [
+          { item: "Empréstimo SIEMP", valor: 5365.30, tipo: "debito_auto" },
+          { item: "Cartão CAIXA VISA", valor: 7980.58, tipo: "fatura" },
+          { item: "Tarifas bancárias", valor: 268.96, tipo: "tarifas" }
+        ],
+        totalFinanceiro: 13614.84,
+        impostos: 6716.13
+      },
+      dre: {
+        receitaBruta: 43890.65,
+        impostos: -6716.13,
+        receitaLiquida: 37174.52,
+        cmv: -16462.27,
+        lucroBruto: 20712.25,
+        despesasOp: {
+          marketing: -15780.52,
+          ocupacao: -4089.15,
+          logistica: -7273.63,
+          pessoal: -6999.18,
+          financeiras: -13614.84,
+          outras: -1420.73
+        },
+        resultado: -28466.80
+      },
+      canais: {
+        atuais: [
+          { canal: "Shopify", pedidos: 257, receita: 43535.67, percent: 99.2, ticket: 169.44 },
+          { canal: "Mercado Livre", pedidos: 6, receita: 249.63, percent: 0.6, ticket: 41.61 },
+          { canal: "TikTok Shop", pedidos: 1, receita: 105.35, percent: 0.2, ticket: 105.35 }
+        ],
+        b2b: [
+          { canal: "Farmácias de Manipulação", potencial: "alto", ticketEst: 2500, freq: "quinzenal", produtos: "Óleos vegetais granel, Extratos", estrategia: "Prospecção + kit amostras", clienteRef: "Pharmacorum (R$ 1.345)" },
+          { canal: "Clínicas de Estética", potencial: "alto", ticketEst: 1800, freq: "mensal", produtos: "Rosa Mosqueta, Jojoba, Massagem", estrategia: "Parceria + desconto profissional", clienteRef: null },
+          { canal: "SPAs e Day SPAs", potencial: "medio", ticketEst: 1200, freq: "mensal", produtos: "Óleos essenciais, Blends", estrategia: "Degustação + fidelidade", clienteRef: null },
+          { canal: "Lojas Naturais", potencial: "medio", ticketEst: 3500, freq: "quinzenal", produtos: "Linha completa revenda", estrategia: "Atacado margem 30%", clienteRef: null },
+          { canal: "Salões de Beleza", potencial: "medio", ticketEst: 800, freq: "mensal", produtos: "Óleos capilares, Argan", estrategia: "Representante regional", clienteRef: null },
+          { canal: "Indústria Cosmética", potencial: "alto", ticketEst: 8000, freq: "mensal", produtos: "Óleos 5L/20L, B2B2C", estrategia: "Contrato + escala de preço", clienteRef: null },
+          { canal: "Terapeutas/Aromaterapeutas", potencial: "medio", ticketEst: 500, freq: "mensal", produtos: "Óleos essenciais, Kits", estrategia: "Certificação + desconto", clienteRef: null },
+          { canal: "Academias/Studios", potencial: "baixo", ticketEst: 600, freq: "bimestral", produtos: "Óleos relaxantes", estrategia: "Parceria pós-treino", clienteRef: null }
+        ]
+      },
+      regioes: [
+        { uf: "DF", pedidos: 331, receita: 117584.15, percent: 42.0 },
+        { uf: "SP", pedidos: 160, receita: 38522.12, percent: 20.3 },
+        { uf: "AM", pedidos: 13, receita: 12982.11, percent: 1.6 },
+        { uf: "MG", pedidos: 49, receita: 11736.20, percent: 6.2 },
+        { uf: "RJ", pedidos: 41, receita: 10186.63, percent: 5.2 },
+        { uf: "SC", pedidos: 20, receita: 9499.23, percent: 2.5 },
+        { uf: "RS", pedidos: 20, receita: 7521.79, percent: 2.5 },
+        { uf: "GO", pedidos: 26, receita: 7347.61, percent: 3.3 },
+        { uf: "PR", pedidos: 27, receita: 6966.22, percent: 3.4 }
+      ],
+      topProdutos: [
+        { sku: "08488", nome: "Blend Facial 60ml", qtd: 14, receita: 1398.60, markup: 100.0, categoria: "Blends" },
+        { sku: "05091", nome: "Óleo Essencial Lavanda MB 10ml", qtd: 17, receita: 882.30, markup: 78.0, categoria: "Óleos Essenciais" },
+        { sku: "00500", nome: "Óleo Semente de Uva 5L", qtd: 2, receita: 807.80, markup: 71.9, categoria: "Óleos Vegetais" },
+        { sku: "05074", nome: "Óleo Essencial Gerânio 10ml", qtd: 7, receita: 741.30, markup: 77.8, categoria: "Óleos Essenciais" },
+        { sku: "00205", nome: "Óleo de Jojoba 1L", qtd: 2, receita: 725.80, markup: 78.2, categoria: "Óleos Vegetais" },
+        { sku: "01065", nome: "Óleo de Moringa 250ml", qtd: 6, receita: 661.90, markup: 69.2, categoria: "Óleos Vegetais" },
+        { sku: "05062", nome: "Óleo Essencial Alecrim 10ml", qtd: 21, receita: 648.90, markup: 83.5, categoria: "Óleos Essenciais" },
+        { sku: "05090", nome: "Óleo Essencial Olíbano 10ml", qtd: 6, receita: 647.40, markup: 78.0, categoria: "Óleos Essenciais" },
+        { sku: "00177", nome: "Óleo de Mamona (Rícino) 1L", qtd: 4, receita: 603.60, markup: 75.4, categoria: "Óleos Vegetais" },
+        { sku: "06892", nome: "Óleo Essencial Jambu 5ml", qtd: 1, receita: 535.90, markup: 100.0, categoria: "Óleos Essenciais" }
+      ],
+      topClientes: [
+        { nome: "Consumidor Final (agregado)", valor: 47836.35, produtos: 1076, tipo: "B2C", loja: "Shopify", pedidos: 240, ticketMedio: 199.32, recompra: true },
+        { nome: "ALZIRA DE BRITO GONCALVES", valor: 2901.57, produtos: 8, tipo: "B2B", loja: "Shopify", pedidos: 3, ticketMedio: 967.19, recompra: true, uf: "AM" },
+        { nome: "Murilo Tulio", valor: 2448.70, produtos: 3, tipo: "B2C", loja: "Shopify", pedidos: 2, ticketMedio: 1224.35, recompra: true, uf: "MS" },
+        { nome: "Hélio Henrique Silva Oliveira", valor: 1975.60, produtos: 13, tipo: "B2C", loja: "Shopify", pedidos: 4, ticketMedio: 493.90, recompra: true, uf: "DF" },
+        { nome: "Israel Almeida de Brito Gonçalves", valor: 1836.17, produtos: 17, tipo: "B2C", loja: "Shopify", pedidos: 5, ticketMedio: 367.23, recompra: true, uf: "AM" },
+        { nome: "Farmacia Pharmacorum", valor: 1345.00, produtos: 10, tipo: "B2B", loja: "Shopify", pedidos: 2, ticketMedio: 672.50, recompra: true, uf: "SP" },
+        { nome: "Neusa de Sousa Leonardo", valor: 1098.98, produtos: 5, tipo: "B2C", loja: "Shopify", pedidos: 2, ticketMedio: 549.49, recompra: true, uf: "DF" },
+        { nome: "Andrea Coelho de Sousa", valor: 1029.25, produtos: 9, tipo: "B2C", loja: "Shopify", pedidos: 3, ticketMedio: 343.08, recompra: true, uf: "DF" },
+        { nome: "Sara Costa de Souza Giotti", valor: 934.70, produtos: 8, tipo: "B2C", loja: "Shopify", pedidos: 2, ticketMedio: 467.35, recompra: false, uf: "DF" },
+        { nome: "Luciano de Paula Costa da Silva", valor: 840.47, produtos: 3, tipo: "B2C", loja: "Shopify", pedidos: 1, ticketMedio: 840.47, recompra: false, uf: "GO" }
+      ],
+      alertas: [
+        { tipo: "critico", titulo: "Déficit Operacional", desc: "Prejuízo de R$ 28.467/mês", acao: "Reduzir custos + aumentar receita" },
+        { tipo: "critico", titulo: "Marketing Caro", desc: "Webi: R$ 8.850/mês = 20% receita", acao: "Renegociar para success fee" },
+        { tipo: "critico", titulo: "Dívidas Elevadas", desc: "R$ 13.346/mês = 30% receita", acao: "Refinanciar parcelas menores" },
+        { tipo: "alto", titulo: "Queda de Receita", desc: "Receita caiu 38% vs Fev", acao: "Reativar base + campanhas" },
+        { tipo: "alto", titulo: "Dependência Shopify", desc: "99,2% das vendas", acao: "Diversificar canais" },
+        { tipo: "medio", titulo: "Concentração Regional", desc: "DF = 42% dos pedidos", acao: "Expandir para SP, MG, RJ" },
+        { tipo: "positivo", titulo: "Markup Saudável", desc: "77,3% médio", acao: "Manter precificação" },
+        { tipo: "positivo", titulo: "Base Grande", desc: "49K clientes, 44% recompra", acao: "Campanhas reativação" }
+      ],
+      aportes: {
+        total4Meses: 118288.89,
+        detalhes: [
+          { mes: "DEZ/25", valor: 61570.21 },
+          { mes: "JAN/26", valor: 41125.51 },
+          { mes: "MAR/26", valor: 15593.17 }
+        ]
+      },
+      metas: {
+        fase1: {
+          nome: "CRM + CRO",
+          periodo: "Dias 1-30",
+          objetivo: "Recuperar receita com base existente",
+          kpis: [
+            { metrica: "Taxa conversão site", atual: 1.8, meta: 2.5, unidade: "%" },
+            { metrica: "Reativação base", atual: 0, meta: 2000, unidade: "clientes" },
+            { metrica: "Negociações CRM", atual: 35, meta: 60, unidade: "deals" }
+          ]
+        },
+        fase2: {
+          nome: "B2B + Portfólio",
+          periodo: "Dias 31-60",
+          objetivo: "Expandir para clientes B2B",
+          kpis: [
+            { metrica: "Novos clientes B2B", atual: 2, meta: 10, unidade: "clientes" },
+            { metrica: "Ticket médio B2B", atual: 1345, meta: 2500, unidade: "R$" },
+            { metrica: "Receita B2B", atual: 4246, meta: 25000, unidade: "R$" }
+          ]
+        },
+        fase3: {
+          nome: "Escala",
+          periodo: "Dias 61-90",
+          objetivo: "Crescimento sustentável",
+          kpis: [
+            { metrica: "Receita total", atual: 43890, meta: 90000, unidade: "R$" },
+            { metrica: "Breakeven", atual: 0, meta: 1, unidade: "sim/não" },
+            { metrica: "Canais ativos", atual: 3, meta: 5, unidade: "canais" }
+          ]
+        }
+      },
+      tarefas: [
+        { id: 1, texto: "Extratos bancários (PDF ou CSV)", prioridade: "alta", status: "concluido" },
+        { id: 2, texto: "Relatórios Bling - Faturamento", prioridade: "alta", status: "concluido" },
+        { id: 3, texto: "Relatórios Bling - Estoque", prioridade: "media", status: "concluido" },
+        { id: 4, texto: "Planilha custos operacionais", prioridade: "alta", status: "concluido" },
+        { id: 5, texto: "Export RD Station - Negociações", prioridade: "alta", status: "pendente" },
+        { id: 6, texto: "Relatório Shopify - Conversão", prioridade: "alta", status: "concluido" },
+        { id: 7, texto: "Lista de fornecedores", prioridade: "baixa", status: "concluido" },
+        { id: 8, texto: "Export RD Station - Base contatos", prioridade: "media", status: "pendente" },
+        { id: 9, texto: "Relatório Shopify - Carrinho abandonado", prioridade: "media", status: "pendente" },
+        { id: 10, texto: "Custos de embalagem detalhado", prioridade: "baixa", status: "pendente" }
+      ],
+      fornecedores: [
+        { nome: "Via Aroma", cidade: "Porto Alegre", uf: "RS", tipo: "Óleos Essenciais" },
+        { nome: "Laszlo", cidade: "Belo Horizonte", uf: "MG", tipo: "Aromaterapia" },
+        { nome: "Terra Flor", cidade: "Brasília", uf: "DF", tipo: "Óleos Essenciais" },
+        { nome: "BioEssência", cidade: "Jaú", uf: "SP", tipo: "Cosméticos Naturais" },
+        { nome: "Arte dos Aromas", cidade: "Diadema", uf: "SP", tipo: "Óleos/Aromas" },
+        { nome: "EBPM Comercial", cidade: "São Paulo", uf: "SP", tipo: "Embalagens" },
+        { nome: "Qualicoco", cidade: "São Paulo", uf: "SP", tipo: "Óleos de Coco" }
+      ]
+    };
+
+    // ==========================================
+    // HELPERS
+    // ==========================================
+    const formatCurrency = (value) => {
+      if (value == null || isNaN(value)) return 'R$ 0,00';
+      return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value);
+    };
+
+    const formatPercent = (value) => {
+      if (value == null || isNaN(value)) return '0,0%';
+      const prefix = value > 0 ? '+' : '';
+      return `${prefix}${value.toFixed(1)}%`;
+    };
+
+    const formatNumber = (value) => {
+      if (value == null || isNaN(value)) return '0';
+      return new Intl.NumberFormat('pt-BR').format(value);
+    };
+
+    // ==========================================
+    // COMPONENTES BASE
+    // ==========================================
+
+    // Sparkline mini-gráfico SVG
+    const Sparkline = ({ data, color = "#22c55e", width = 80, height = 24 }) => {
+      if (!data || data.length < 2) return null;
+      const max = Math.max(...data);
+      const min = Math.min(...data);
+      const range = max - min || 1;
+      const points = data.map((v, i) => {
+        const x = (i / (data.length - 1)) * width;
+        const y = height - ((v - min) / range) * (height - 4) - 2;
+        return `${x},${y}`;
+      }).join(' ');
+      return (
+        <svg width={width} height={height} className="inline-block ml-2">
+          <polyline fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" points={points} />
+        </svg>
+      );
+    };
+
+    // KPI Card com sparkline
+    const KPICard = ({ label, value, subvalue, trend, color = "gray", sparkData, sparkColor, onClick }) => {
+      const colors = {
+        green: "bg-green-50 border-green-200 dark:bg-green-950 dark:border-green-800",
+        red: "bg-red-50 border-red-200 dark:bg-red-950 dark:border-red-800",
+        orange: "bg-orange-50 border-orange-200 dark:bg-orange-950 dark:border-orange-800",
+        blue: "bg-blue-50 border-blue-200 dark:bg-blue-950 dark:border-blue-800",
+        gray: "bg-white border-gray-200 dark:bg-gray-800 dark:border-gray-700"
+      };
+      const trendColors = {
+        up: "text-green-600 dark:text-green-400",
+        down: "text-red-600 dark:text-red-400",
+        neutral: "text-gray-500 dark:text-gray-400"
+      };
+      return (
+        <div
+          className={`rounded-xl p-4 border ${colors[color] || colors.gray} ${onClick ? 'cursor-pointer hover:shadow-md transition' : ''} animate-fade-in`}
+          onClick={onClick}
+        >
+          <p className="text-sm text-gray-500 dark:text-gray-400">{label}</p>
+          <div className="flex items-end justify-between mt-1">
+            <p className="text-2xl font-bold text-gray-800 dark:text-gray-100">{value}</p>
+            {sparkData && <Sparkline data={sparkData} color={sparkColor || (trend === 'down' ? '#ef4444' : '#22c55e')} />}
+          </div>
+          {subvalue && (
+            <p className={`text-sm mt-1 ${trendColors[trend] || 'text-gray-500 dark:text-gray-400'}`}>
+              {subvalue}
+            </p>
+          )}
+        </div>
+      );
+    };
+
+    // Badge
+    const Badge = ({ type, children }) => {
+      const styles = {
+        critico: "bg-red-100 text-red-700 border-red-200 dark:bg-red-900 dark:text-red-300 dark:border-red-700",
+        alto: "bg-orange-100 text-orange-700 border-orange-200 dark:bg-orange-900 dark:text-orange-300 dark:border-orange-700",
+        medio: "bg-yellow-100 text-yellow-700 border-yellow-200 dark:bg-yellow-900 dark:text-yellow-300 dark:border-yellow-700",
+        baixo: "bg-gray-100 text-gray-600 border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600",
+        positivo: "bg-green-100 text-green-700 border-green-200 dark:bg-green-900 dark:text-green-300 dark:border-green-700"
+      };
+      return (
+        <span className={`px-2 py-1 rounded-full text-xs font-medium border ${styles[type] || styles.baixo}`}>
+          {children}
+        </span>
+      );
+    };
+
+    // Barra de Progresso
+    const ProgressBar = ({ value, max, color = "green", label, detail, showPercent = true }) => {
+      const percent = Math.min((value / (max || 1)) * 100, 100);
+      const colors = {
+        green: "bg-green-500",
+        red: "bg-red-500",
+        orange: "bg-orange-500",
+        blue: "bg-blue-500",
+        purple: "bg-purple-500"
+      };
+      return (
+        <div className="mb-3">
+          <div className="flex justify-between text-sm mb-1">
+            <span className="text-gray-600 dark:text-gray-400">{label}</span>
+            <span className="text-gray-500 dark:text-gray-400">
+              {detail || (showPercent ? `${percent.toFixed(0)}%` : '')}
+            </span>
+          </div>
+          <div className="h-2.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+            <div
+              className={`h-full ${colors[color] || colors.green} transition-all duration-700 rounded-full`}
+              style={{ width: `${percent}%` }}
+            />
+          </div>
+        </div>
+      );
+    };
+
+    // Gráfico de Pizza (CSS conic-gradient)
+    const PieChart = ({ data, size = 140, valueKey = "percent", labelKey = "canal" }) => {
+      let cumulative = 0;
+      const colors = ['#22c55e', '#3b82f6', '#f97316', '#eab308', '#8b5cf6', '#ec4899', '#14b8a6', '#f43f5e'];
+      const segments = data.map((item, i) => {
+        const start = cumulative;
+        cumulative += (item[valueKey] || 0);
+        return { ...item, color: colors[i % colors.length], start, end: cumulative };
+      });
+      const gradientStr = segments.map(s => `${s.color} ${s.start}% ${s.end}%`).join(', ');
+      return (
+        <div className="flex items-center gap-4 flex-wrap">
+          <div
+            className="rounded-full flex-shrink-0 shadow-inner"
+            style={{ width: size, height: size, background: `conic-gradient(${gradientStr})` }}
+          />
+          <div className="space-y-1">
+            {segments.map((s, i) => (
+              <div key={i} className="flex items-center gap-2 text-sm">
+                <div className="w-3 h-3 rounded flex-shrink-0" style={{ background: s.color }} />
+                <span className="text-gray-600 dark:text-gray-400">{s[labelKey]}: {(s[valueKey] || 0).toFixed(1)}%</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      );
+    };
+
+    // Card de Seção
+    const SectionCard = ({ title, children, className = "" }) => (
+      <div className={`bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 sm:p-5 animate-slide-up ${className}`}>
+        {title && <h3 className="font-semibold text-gray-800 dark:text-gray-100 mb-4">{title}</h3>}
+        {children}
+      </div>
+    );
+
+    // ==========================================
+    // SEÇÃO: DASHBOARD
+    // ==========================================
+    const DashboardSection = () => {
+      const receitaSpark = [null, null, 70923.25, 43890.65].filter(v => v !== null);
+      const pedidosSpark = [null, null, 370, 264].filter(v => v !== null);
+      const ticketSpark = [null, null, 191.68, 166.25].filter(v => v !== null);
+
+      return (
+        <div className="space-y-6">
+          {/* Alerta de Déficit */}
+          <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl p-4 animate-fade-in">
+            <div className="flex items-start gap-3">
+              <span className="text-2xl">⚠️</span>
+              <div>
+                <h3 className="font-semibold text-red-800 dark:text-red-300">Alerta: Déficit Operacional</h3>
+                <p className="text-red-700 dark:text-red-400 text-sm mt-1">
+                  A empresa opera com prejuízo de <strong>{formatCurrency(Math.abs(DADOS.dre.resultado))}/mês</strong>.
+                  Saldo caiu de {formatCurrency(DADOS.fluxoCaixa.saldoInicial)} para {formatCurrency(DADOS.fluxoCaixa.saldoFinal)} em 21 dias.
+                </p>
+              </div>
+            </div>
+          </div>
+
+          {/* KPIs com sparklines */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">KPIs do Período</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard label="Receita Bruta" value={formatCurrency(DADOS.receita.bruta)} subvalue={`${formatPercent(DADOS.comparativo.variacaoReceita)} vs Fev`} trend="down" color="red" sparkData={receitaSpark} />
+              <KPICard label="Pedidos" value={DADOS.receita.pedidos} subvalue={`${formatPercent(DADOS.comparativo.variacaoPedidos)} vs Fev`} trend="down" sparkData={pedidosSpark} sparkColor="#ef4444" />
+              <KPICard label="Ticket Médio" value={formatCurrency(DADOS.receita.ticketMedio)} subvalue={`${formatPercent(DADOS.comparativo.variacaoTicket)} vs Fev`} trend="down" sparkData={ticketSpark} sparkColor="#f97316" />
+              <KPICard label="Markup" value={`${DADOS.receita.markup}%`} subvalue="Saudável" trend="up" color="green" />
+            </div>
+          </div>
+
+          {/* Dependência de Aportes */}
+          <div className="bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="font-semibold text-orange-800 dark:text-orange-300">Dependência de Aportes de Sócios</h3>
+              <Badge type="alto">Alto Risco</Badge>
+            </div>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              {DADOS.aportes.detalhes.map((a, i) => (
+                <div key={i}>
+                  <p className="text-xs text-orange-600 dark:text-orange-400">{a.mes}</p>
+                  <p className="text-lg font-bold text-orange-800 dark:text-orange-300">{formatCurrency(a.valor)}</p>
+                </div>
+              ))}
+            </div>
+            <div className="mt-3 pt-3 border-t border-orange-200 dark:border-orange-700 text-center">
+              <p className="text-sm text-orange-700 dark:text-orange-400">Total últimos 4 meses: <strong>{formatCurrency(DADOS.aportes.total4Meses)}</strong></p>
+            </div>
+          </div>
+
+          {/* Receita vs Despesa com PieChart */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Receita vs Despesa (Março)</h2>
+            <SectionCard>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Entradas</p>
+                      <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(DADOS.receita.bruta)}</p>
+                      <div className="h-3 bg-green-500 rounded mt-2" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-500 dark:text-gray-400 mb-1">Saídas</p>
+                      <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(DADOS.custos.totalFixo + DADOS.custos.totalVariavel + DADOS.custos.totalFinanceiro + DADOS.custos.impostos)}</p>
+                      <div className="h-3 bg-red-500 rounded mt-2" style={{ width: `${Math.min(((DADOS.custos.totalFixo + DADOS.custos.totalVariavel + DADOS.custos.totalFinanceiro + DADOS.custos.impostos) / DADOS.receita.bruta) * 100, 100)}%` }} />
+                    </div>
+                  </div>
+                  <div className="pt-4 border-t border-gray-200 dark:border-gray-700 text-center">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Resultado Operacional</p>
+                    <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(DADOS.dre.resultado)}</p>
+                  </div>
+                </div>
+                <div>
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">Composição das Despesas</p>
+                  <PieChart
+                    data={[
+                      { canal: "Custos Fixos", percent: 33.1 },
+                      { canal: "CMV/Fornecedores", percent: 34.0 },
+                      { canal: "Financeiras", percent: 21.8 },
+                      { canal: "Impostos", percent: 10.7 }
+                    ]}
+                    size={120}
+                  />
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* Snapshot */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Snapshot do Negócio</h2>
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+              <KPICard label="SKUs ativos" value="3.000+" color="blue" />
+              <KPICard label="Base de clientes" value="~49K" color="blue" />
+              <KPICard label="Taxa recompra" value="44%" color="green" />
+              <KPICard label="Anos no mercado" value="20+" />
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // SEÇÃO: FLUXO DE CAIXA
+    // ==========================================
+    const FluxoCaixaSection = () => {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Evolução do Saldo Bancário</h2>
+            <SectionCard>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Período</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Saldo Inicial</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Saldo Final</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Variação</th>
+                      <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Aportes</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {DADOS.fluxoCaixa.historico.filter(h => h.saldoInicial).map((h, i) => (
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                        <td className="px-4 py-3 font-medium text-gray-800 dark:text-gray-200">{h.mes}</td>
+                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(h.saldoInicial)}</td>
+                        <td className="px-4 py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(h.saldoFinal)}</td>
+                        <td className={`px-4 py-3 text-right font-medium ${h.variacao >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                          {h.variacao >= 0 ? '+' : ''}{formatCurrency(h.variacao)}
+                        </td>
+                        <td className="px-4 py-3 text-right text-orange-600 dark:text-orange-400">{h.aportes ? formatCurrency(h.aportes) : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* Despesas */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Despesas por Categoria</h2>
+            <SectionCard>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Custos Fixos ({formatCurrency(DADOS.custos.totalFixo)})</h3>
+                  {DADOS.custos.fixos.map((c, i) => (
+                    <div key={i} className="mb-3">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400 truncate mr-2">{c.item}</span>
+                        <span className={`font-medium flex-shrink-0 ${c.criticidade === 'alta' ? 'text-red-600 dark:text-red-400' : 'text-gray-700 dark:text-gray-300'}`}>
+                          {formatCurrency(c.valor)}
+                        </span>
+                      </div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${c.criticidade === 'alta' ? 'bg-red-500' : c.criticidade === 'media' ? 'bg-orange-400' : 'bg-blue-400'}`}
+                          style={{ width: `${(c.valor / DADOS.custos.fixos[0].valor) * 100}%` }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div>
+                  <h3 className="font-medium text-gray-700 dark:text-gray-300 mb-3">Fornecedores/CMV ({formatCurrency(DADOS.custos.totalVariavel)})</h3>
+                  {DADOS.custos.variaveis.map((c, i) => (
+                    <div key={i} className="mb-3">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span className="text-gray-600 dark:text-gray-400 truncate mr-2">{c.fornecedor} <span className="text-xs text-gray-400">({c.tipo})</span></span>
+                        <span className="font-medium text-gray-700 dark:text-gray-300 flex-shrink-0">{formatCurrency(c.valor)}</span>
+                      </div>
+                      <div className="h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className="h-full bg-green-400 rounded-full" style={{ width: `${(c.valor / DADOS.custos.variaveis[0].valor) * 100}%` }} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="mt-6 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <h3 className="font-medium text-red-700 dark:text-red-400 mb-3">Despesas Financeiras ({formatCurrency(DADOS.custos.totalFinanceiro)})</h3>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  {DADOS.custos.financeiras.map((f, i) => (
+                    <div key={i} className="bg-red-50 dark:bg-red-950 rounded-lg p-3 text-center border border-red-100 dark:border-red-800">
+                      <p className="text-xs text-red-600 dark:text-red-400">{f.item}</p>
+                      <p className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(f.valor)}</p>
+                      <p className="text-xs text-red-500 dark:text-red-400">{f.tipo === 'debito_auto' ? 'Débito automático' : f.tipo === 'fatura' ? 'Fatura mensal' : 'Tarifas'}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* DRE */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">DRE Simplificado - Março/2026</h2>
+            <SectionCard>
+              <div className="space-y-1">
+                <div className="flex justify-between py-2"><span className="text-gray-600 dark:text-gray-400">Receita Bruta</span><span className="font-medium dark:text-gray-200">{formatCurrency(DADOS.dre.receitaBruta)}</span></div>
+                <div className="flex justify-between py-2 text-red-600 dark:text-red-400"><span>(-) Impostos s/ Vendas</span><span>{formatCurrency(DADOS.dre.impostos)}</span></div>
+                <div className="flex justify-between py-2 border-t border-gray-200 dark:border-gray-700 font-medium dark:text-gray-200"><span>= Receita Líquida</span><span>{formatCurrency(DADOS.dre.receitaLiquida)}</span></div>
+                <div className="flex justify-between py-2 text-red-600 dark:text-red-400"><span>(-) CMV</span><span>{formatCurrency(DADOS.dre.cmv)}</span></div>
+                <div className="flex justify-between py-2 border-t border-gray-200 dark:border-gray-700 font-medium text-green-600 dark:text-green-400"><span>= Lucro Bruto</span><span>{formatCurrency(DADOS.dre.lucroBruto)}</span></div>
+                {Object.entries(DADOS.dre.despesasOp).map(([key, val]) => (
+                  <div key={key} className="flex justify-between py-1 text-sm text-red-500 dark:text-red-400">
+                    <span className="pl-4">(-) {key.charAt(0).toUpperCase() + key.slice(1)}</span>
+                    <span>{formatCurrency(val)}</span>
+                  </div>
+                ))}
+                <div className="flex justify-between py-3 border-t-2 border-gray-300 dark:border-gray-600 font-bold text-lg">
+                  <span className="dark:text-gray-200">= RESULTADO</span>
+                  <span className={DADOS.dre.resultado >= 0 ? 'text-green-600' : 'text-red-600 dark:text-red-400'}>{formatCurrency(DADOS.dre.resultado)}</span>
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // SEÇÃO: CANAIS B2B
+    // ==========================================
+    const CanaisB2BSection = () => {
+      const [selectedCanal, setSelectedCanal] = useState(null);
+
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Canais Atuais de Venda</h2>
+            <SectionCard>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  {DADOS.canais.atuais.map((c, i) => (
+                    <div key={i} className="mb-4">
+                      <div className="flex justify-between mb-1">
+                        <span className="font-medium text-gray-700 dark:text-gray-300">{c.canal}</span>
+                        <span className="text-gray-600 dark:text-gray-400">{c.percent}%</span>
+                      </div>
+                      <div className="h-3 bg-gray-100 dark:bg-gray-700 rounded-full overflow-hidden">
+                        <div className={`h-full rounded-full ${i === 0 ? 'bg-green-500' : 'bg-blue-400'}`} style={{ width: `${c.percent}%` }} />
+                      </div>
+                      <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                        <span>{c.pedidos} pedidos</span>
+                        <span>Ticket: {formatCurrency(c.ticket)}</span>
+                        <span>{formatCurrency(c.receita)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="flex flex-col items-center justify-center gap-4">
+                  <div className="text-center">
+                    <p className="text-sm text-red-600 dark:text-red-400 font-medium mb-2">Dependência Crítica</p>
+                    <p className="text-5xl font-bold text-red-600 dark:text-red-400">99,2%</p>
+                    <p className="text-gray-500 dark:text-gray-400">das vendas via Shopify</p>
+                  </div>
+                  <PieChart data={DADOS.canais.atuais} size={100} />
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Canais B2B Potenciais</h2>
+            <div className="grid md:grid-cols-2 gap-4">
+              {DADOS.canais.b2b.map((canal, i) => (
+                <div
+                  key={i}
+                  className={`bg-white dark:bg-gray-800 rounded-xl border p-4 cursor-pointer transition animate-slide-up ${
+                    selectedCanal === i ? 'border-green-500 ring-2 ring-green-200 dark:ring-green-800' : 'border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600'
+                  }`}
+                  style={{ animationDelay: `${i * 50}ms` }}
+                  onClick={() => setSelectedCanal(selectedCanal === i ? null : i)}
+                >
+                  <div className="flex justify-between items-start mb-2">
+                    <h3 className="font-medium text-gray-800 dark:text-gray-200">{canal.canal}</h3>
+                    <Badge type={canal.potencial === 'alto' ? 'positivo' : canal.potencial === 'medio' ? 'medio' : 'baixo'}>{canal.potencial}</Badge>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2 text-sm mb-2">
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Ticket estimado</p>
+                      <p className="font-medium text-green-600 dark:text-green-400">{formatCurrency(canal.ticketEst)}</p>
+                    </div>
+                    <div>
+                      <p className="text-gray-500 dark:text-gray-400">Frequência</p>
+                      <p className="font-medium text-gray-700 dark:text-gray-300">{canal.freq}</p>
+                    </div>
+                  </div>
+                  {selectedCanal === i && (
+                    <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700 space-y-2 animate-fade-in">
+                      <div><p className="text-xs text-gray-500 dark:text-gray-400">Produtos foco</p><p className="text-sm text-gray-700 dark:text-gray-300">{canal.produtos}</p></div>
+                      <div><p className="text-xs text-gray-500 dark:text-gray-400">Estratégia sugerida</p><p className="text-sm text-gray-700 dark:text-gray-300">{canal.estrategia}</p></div>
+                      {canal.clienteRef && (
+                        <div className="bg-green-50 dark:bg-green-950 rounded p-2"><p className="text-xs text-green-600 dark:text-green-400">Cliente referência: {canal.clienteRef}</p></div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-xl p-4">
+            <h3 className="font-semibold text-green-800 dark:text-green-300 mb-3">Projeção de Receita B2B</h3>
+            <div className="grid grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-sm text-green-600 dark:text-green-400">Ticket médio B2B</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(2200)}</p>
+              </div>
+              <div>
+                <p className="text-sm text-green-600 dark:text-green-400">Meta clientes Ano 1</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">50</p>
+              </div>
+              <div>
+                <p className="text-sm text-green-600 dark:text-green-400">Receita potencial/mês</p>
+                <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(45000)}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // SEÇÃO: ANÁLISE DE CLIENTES (NOVA)
+    // ==========================================
+    const AnaliseClientesSection = () => {
+      const [viewMode, setViewMode] = useState('geral');
+
+      const clientesSemAgregado = DADOS.topClientes.filter(c => !c.nome.includes('agregado'));
+      const clientesB2B = clientesSemAgregado.filter(c => c.tipo === 'B2B');
+      const clientesB2C = clientesSemAgregado.filter(c => c.tipo === 'B2C');
+
+      const totalReceitaTop = clientesSemAgregado.reduce((s, c) => s + c.valor, 0);
+      const avgTicketTop = totalReceitaTop / clientesSemAgregado.reduce((s, c) => s + c.pedidos, 0);
+      const clientesComRecompra = clientesSemAgregado.filter(c => c.recompra).length;
+      const taxaRecompraTop = (clientesComRecompra / clientesSemAgregado.length * 100);
+
+      const receitaB2B = clientesB2B.reduce((s, c) => s + c.valor, 0);
+      const receitaB2C = clientesB2C.reduce((s, c) => s + c.valor, 0);
+      const ticketB2B = clientesB2B.length > 0 ? receitaB2B / clientesB2B.reduce((s, c) => s + c.pedidos, 0) : 0;
+      const ticketB2C = clientesB2C.length > 0 ? receitaB2C / clientesB2C.reduce((s, c) => s + c.pedidos, 0) : 0;
+
+      // Concentração por UF
+      const ufMap = {};
+      clientesSemAgregado.forEach(c => {
+        if (c.uf) {
+          if (!ufMap[c.uf]) ufMap[c.uf] = { receita: 0, qtd: 0 };
+          ufMap[c.uf].receita += c.valor;
+          ufMap[c.uf].qtd += 1;
+        }
+      });
+      const ufData = Object.entries(ufMap).sort((a, b) => b[1].receita - a[1].receita);
+
+      // Scoring de clientes
+      const clienteScores = clientesSemAgregado.map(c => {
+        let score = 0;
+        score += c.valor >= 2000 ? 30 : c.valor >= 1000 ? 20 : 10;
+        score += c.recompra ? 25 : 0;
+        score += c.pedidos >= 4 ? 20 : c.pedidos >= 2 ? 10 : 5;
+        score += c.tipo === 'B2B' ? 25 : 0;
+        const tier = score >= 70 ? 'Gold' : score >= 50 ? 'Silver' : 'Bronze';
+        return { ...c, score, tier };
+      }).sort((a, b) => b.score - a.score);
+
+      return (
+        <div className="space-y-6">
+          {/* Filtros de visualização */}
+          <div className="flex gap-2 no-print">
+            {[
+              { id: 'geral', label: 'Visão Geral' },
+              { id: 'ranking', label: 'Ranking' },
+              { id: 'segmentacao', label: 'Segmentação' },
+              { id: 'oportunidades', label: 'Oportunidades' }
+            ].map(v => (
+              <button
+                key={v.id}
+                onClick={() => setViewMode(v.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  viewMode === v.id ? 'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+
+          {/* VISÃO GERAL */}
+          {viewMode === 'geral' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* KPIs de Cliente */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard label="Base Total" value="~49.000" subvalue="clientes cadastrados" color="blue" />
+                <KPICard label="Taxa Recompra" value="44%" subvalue="retornam para comprar" trend="up" color="green" />
+                <KPICard label="Clientes Ativos (Mar)" value={DADOS.receita.pedidos} subvalue="pedidos no período" />
+                <KPICard label="LTV Médio Estimado" value={formatCurrency(DADOS.receita.ticketMedio * 3.2)} subvalue="~3,2 compras/ano" color="green" />
+              </div>
+
+              {/* Distribuição B2B vs B2C */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <SectionCard title="Distribuição B2B vs B2C (Top Clientes)">
+                  <div className="grid grid-cols-2 gap-4 mb-4">
+                    <div className="bg-blue-50 dark:bg-blue-950 rounded-lg p-3 text-center border border-blue-100 dark:border-blue-800">
+                      <p className="text-xs text-blue-600 dark:text-blue-400">Clientes B2B</p>
+                      <p className="text-2xl font-bold text-blue-700 dark:text-blue-300">{clientesB2B.length}</p>
+                      <p className="text-xs text-blue-500 dark:text-blue-400">{formatCurrency(receitaB2B)}</p>
+                    </div>
+                    <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 text-center border border-gray-200 dark:border-gray-700">
+                      <p className="text-xs text-gray-600 dark:text-gray-400">Clientes B2C</p>
+                      <p className="text-2xl font-bold text-gray-700 dark:text-gray-300">{clientesB2C.length}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(receitaB2C)}</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Ticket médio B2B</span>
+                      <span className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(ticketB2B)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm">
+                      <span className="text-gray-600 dark:text-gray-400">Ticket médio B2C</span>
+                      <span className="font-bold text-gray-600 dark:text-gray-300">{formatCurrency(ticketB2C)}</span>
+                    </div>
+                    <div className="flex justify-between text-sm pt-2 border-t border-gray-100 dark:border-gray-700">
+                      <span className="text-gray-600 dark:text-gray-400">Diferença</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">B2B {((ticketB2B / ticketB2C - 1) * 100).toFixed(0)}% maior</span>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Concentração por Estado (Top Clientes)">
+                  {ufData.map(([uf, data], i) => (
+                    <ProgressBar
+                      key={uf}
+                      label={`${uf} (${data.qtd} cliente${data.qtd > 1 ? 's' : ''})`}
+                      value={data.receita}
+                      max={ufData[0][1].receita}
+                      color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'}
+                      detail={formatCurrency(data.receita)}
+                      showPercent={false}
+                    />
+                  ))}
+                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      Oportunidade: AM tem 2 clientes de alto valor — potencial para expansão regional
+                    </p>
+                  </div>
+                </SectionCard>
+              </div>
+
+              {/* Funil e métricas */}
+              <SectionCard title="Funil de Clientes (Estimativa)">
+                <div className="space-y-3">
+                  <ProgressBar label="Base cadastrada" value={49000} max={49000} color="blue" detail="49.000 clientes" showPercent={false} />
+                  <ProgressBar label="Compraram alguma vez" value={21560} max={49000} color="green" detail="~21.560 (44%)" />
+                  <ProgressBar label="Ativos últimos 90 dias" value={788} max={49000} color="orange" detail="~788 (estimado)" />
+                  <ProgressBar label="Compraram em Março" value={264} max={49000} color="purple" detail="264 pedidos" />
+                </div>
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm text-yellow-800 dark:text-yellow-300 font-medium">Oportunidade: ~20.000 clientes inativos</p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">Se 5% forem reativados com ticket de R$ 150 = R$ 150.000 em receita potencial</p>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* RANKING */}
+          {viewMode === 'ranking' && (
+            <div className="space-y-6 animate-fade-in">
+              <SectionCard title="Ranking de Clientes por Valor (Março/2026)">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Cliente</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Valor</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Pedidos</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Ticket</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Tipo</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Recompra</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Score</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {clienteScores.map((c, i) => (
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                          <td className="px-3 py-3 text-gray-500 dark:text-gray-400 font-mono">{i + 1}</td>
+                          <td className="px-3 py-3 text-gray-800 dark:text-gray-200 font-medium text-sm">{c.nome}</td>
+                          <td className="px-3 py-3 text-right text-green-600 dark:text-green-400 font-medium">{formatCurrency(c.valor)}</td>
+                          <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{c.pedidos}</td>
+                          <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(c.ticketMedio)}</td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`px-2 py-1 rounded text-xs ${c.tipo === 'B2B' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{c.tipo}</span>
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            {c.recompra ? <span className="text-green-500">&#10003;</span> : <span className="text-gray-300">—</span>}
+                          </td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`px-2 py-1 rounded-full text-xs font-bold ${
+                              c.tier === 'Gold' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                              c.tier === 'Silver' ? 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200' :
+                              'bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300'
+                            }`}>{c.score} {c.tier}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+                <div className="mt-4 grid grid-cols-3 gap-3 text-center text-sm">
+                  <div className="bg-yellow-50 dark:bg-yellow-950 p-2 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                    <p className="font-bold text-yellow-700 dark:text-yellow-300">Gold (70+)</p>
+                    <p className="text-yellow-600 dark:text-yellow-400 text-xs">Alto valor + recompra + B2B</p>
+                  </div>
+                  <div className="bg-gray-100 dark:bg-gray-700 p-2 rounded-lg">
+                    <p className="font-bold text-gray-700 dark:text-gray-300">Silver (50-69)</p>
+                    <p className="text-gray-500 dark:text-gray-400 text-xs">Valor médio + potencial</p>
+                  </div>
+                  <div className="bg-orange-50 dark:bg-orange-950 p-2 rounded-lg border border-orange-200 dark:border-orange-800">
+                    <p className="font-bold text-orange-700 dark:text-orange-300">Bronze (&lt;50)</p>
+                    <p className="text-orange-600 dark:text-orange-400 text-xs">Compra única + baixo ticket</p>
+                  </div>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* SEGMENTAÇÃO */}
+          {viewMode === 'segmentacao' && (
+            <div className="space-y-6 animate-fade-in">
+              <div className="grid md:grid-cols-2 gap-6">
+                <SectionCard title="Segmento B2B — Alto Potencial">
+                  <div className="space-y-4">
+                    {clientesB2B.map((c, i) => (
+                      <div key={i} className="border border-blue-100 dark:border-blue-800 rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/50">
+                        <div className="flex justify-between items-start">
+                          <div>
+                            <p className="font-medium text-gray-800 dark:text-gray-200">{c.nome}</p>
+                            <p className="text-xs text-gray-500 dark:text-gray-400">{c.uf || '—'} &bull; {c.pedidos} pedido(s)</p>
+                          </div>
+                          <p className="font-bold text-blue-600 dark:text-blue-400">{formatCurrency(c.valor)}</p>
+                        </div>
+                        <div className="mt-2 flex gap-2">
+                          <span className="px-2 py-0.5 bg-blue-100 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded text-xs">Ticket: {formatCurrency(c.ticketMedio)}</span>
+                          {c.recompra && <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs">Recorrente</span>}
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                      <p className="text-sm font-medium text-blue-800 dark:text-blue-300">Insight B2B</p>
+                      <p className="text-xs text-blue-700 dark:text-blue-400 mt-1">Ticket B2B é {((ticketB2B / ticketB2C - 1) * 100).toFixed(0)}% maior que B2C. Com apenas 2 clientes B2B representando {formatCurrency(receitaB2B)}, a diversificação B2B é a alavanca mais impactante.</p>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Segmento B2C — Fidelização">
+                  <div className="space-y-3">
+                    {clientesB2C.slice(0, 5).map((c, i) => (
+                      <div key={i} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                        <div>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.nome}</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{c.uf || '—'} &bull; {c.pedidos} pedido(s) &bull; {c.produtos} itens</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-medium text-green-600 dark:text-green-400">{formatCurrency(c.valor)}</p>
+                          <p className="text-xs text-gray-400">{c.recompra ? 'Recorrente' : 'Compra única'}</p>
+                        </div>
+                      </div>
+                    ))}
+                    <div className="p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                      <p className="text-sm font-medium text-green-800 dark:text-green-300">Insight B2C</p>
+                      <p className="text-xs text-green-700 dark:text-green-400 mt-1">{taxaRecompraTop.toFixed(0)}% dos top clientes são recorrentes. Estratégia: programa de fidelidade com descontos progressivos para aumentar recompra.</p>
+                    </div>
+                  </div>
+                </SectionCard>
+              </div>
+
+              {/* Análise de Cohort simplificada */}
+              <SectionCard title="Perfil de Compra — Análise de Comportamento">
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                  <div className="text-center p-3 bg-purple-50 dark:bg-purple-950 rounded-lg border border-purple-100 dark:border-purple-800">
+                    <p className="text-xs text-purple-600 dark:text-purple-400">Compradores Frequentes</p>
+                    <p className="text-xl font-bold text-purple-700 dark:text-purple-300">{clientesSemAgregado.filter(c => c.pedidos >= 3).length}</p>
+                    <p className="text-xs text-purple-500 dark:text-purple-400">3+ pedidos</p>
+                  </div>
+                  <div className="text-center p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-100 dark:border-blue-800">
+                    <p className="text-xs text-blue-600 dark:text-blue-400">Alto Valor</p>
+                    <p className="text-xl font-bold text-blue-700 dark:text-blue-300">{clientesSemAgregado.filter(c => c.valor >= 1500).length}</p>
+                    <p className="text-xs text-blue-500 dark:text-blue-400">R$ 1.500+</p>
+                  </div>
+                  <div className="text-center p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-100 dark:border-green-800">
+                    <p className="text-xs text-green-600 dark:text-green-400">Recorrentes</p>
+                    <p className="text-xl font-bold text-green-700 dark:text-green-300">{clientesComRecompra}</p>
+                    <p className="text-xs text-green-500 dark:text-green-400">{taxaRecompraTop.toFixed(0)}% do top</p>
+                  </div>
+                  <div className="text-center p-3 bg-orange-50 dark:bg-orange-950 rounded-lg border border-orange-100 dark:border-orange-800">
+                    <p className="text-xs text-orange-600 dark:text-orange-400">Compra Única</p>
+                    <p className="text-xl font-bold text-orange-700 dark:text-orange-300">{clientesSemAgregado.filter(c => !c.recompra).length}</p>
+                    <p className="text-xs text-orange-500 dark:text-orange-400">risco de churn</p>
+                  </div>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* OPORTUNIDADES */}
+          {viewMode === 'oportunidades' && (
+            <div className="space-y-6 animate-fade-in">
+              <SectionCard title="Oportunidades Identificadas">
+                <div className="space-y-4">
+                  {[
+                    {
+                      icon: "🔥", titulo: "Reativação da Base Inativa",
+                      desc: "~20.000 clientes cadastrados que não compram há mais de 90 dias. Campanha de e-mail segmentada com custo quase zero.",
+                      impacto: "Se 5% converterem com ticket de R$ 150 = R$ 150.000",
+                      prioridade: "critico",
+                      acoes: ["Segmentar base por última compra", "E-mail com cupom 10% exclusivo", "WhatsApp para top 500 inativos"]
+                    },
+                    {
+                      icon: "🏢", titulo: "Expansão B2B — Farmácias de Manipulação",
+                      desc: "Já existe cliente referência (Pharmacorum R$ 1.345). Replicar modelo para 10+ farmácias.",
+                      impacto: "10 farmácias x R$ 2.500/mês = R$ 25.000/mês adicional",
+                      prioridade: "alto",
+                      acoes: ["Criar kit amostras profissional", "Mapear 30 farmácias em DF/SP", "Oferecer condição especial primeiro pedido"]
+                    },
+                    {
+                      icon: "📦", titulo: "Cross-sell nos Top Clientes",
+                      desc: "Top clientes compram média de 7 itens. Potencial para kits e combos personalizados.",
+                      impacto: "Aumento de 30% no ticket via kits = +R$ 4.000/mês",
+                      prioridade: "medio",
+                      acoes: ["Criar 5 kits temáticos", "E-mail personalizado com recomendações", "Desconto de 15% no 2o kit"]
+                    },
+                    {
+                      icon: "📍", titulo: "Expansão Regional — Amazonas",
+                      desc: "AM tem 2 clientes de alto valor (Alzira e Israel). Ticket médio 2x superior à média.",
+                      impacto: "Frete especial + representante = +R$ 8.000/mês",
+                      prioridade: "medio",
+                      acoes: ["Negociar frete especial para Manaus", "Prospectar via clientes referência", "Criar landing page segmentada"]
+                    }
+                  ].map((op, i) => (
+                    <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-xl p-4 hover:shadow-md transition">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">{op.icon}</span>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-1">
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200">{op.titulo}</h4>
+                            <Badge type={op.prioridade}>{op.prioridade}</Badge>
+                          </div>
+                          <p className="text-sm text-gray-600 dark:text-gray-400">{op.desc}</p>
+                          <div className="mt-2 p-2 bg-green-50 dark:bg-green-950 rounded border border-green-100 dark:border-green-800">
+                            <p className="text-xs font-medium text-green-700 dark:text-green-400">Impacto: {op.impacto}</p>
+                          </div>
+                          <div className="mt-2">
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">Próximos passos:</p>
+                            {op.acoes.map((a, j) => (
+                              <p key={j} className="text-xs text-gray-600 dark:text-gray-400 pl-3">• {a}</p>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ==========================================
+    // SEÇÃO: METAS 90 DIAS (NOVA)
+    // ==========================================
+    const MetasSection = () => {
+      const fases = [DADOS.metas.fase1, DADOS.metas.fase2, DADOS.metas.fase3];
+      const faseColors = ['blue', 'purple', 'green'];
+      const faseBgs = [
+        'border-blue-200 dark:border-blue-800 bg-blue-50/30 dark:bg-blue-950/30',
+        'border-purple-200 dark:border-purple-800 bg-purple-50/30 dark:bg-purple-950/30',
+        'border-green-200 dark:border-green-800 bg-green-50/30 dark:bg-green-950/30'
+      ];
+
+      return (
+        <div className="space-y-6">
+          <div className="grid md:grid-cols-3 gap-6">
+            {fases.map((fase, fi) => (
+              <div key={fi} className={`rounded-xl border p-4 ${faseBgs[fi]} animate-slide-up`} style={{ animationDelay: `${fi * 100}ms` }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={`w-6 h-6 rounded-full bg-${faseColors[fi]}-500 text-white text-xs font-bold flex items-center justify-center`}>{fi + 1}</span>
+                  <h3 className="font-semibold text-gray-800 dark:text-gray-200">{fase.nome}</h3>
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mb-1">{fase.periodo}</p>
+                <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">{fase.objetivo}</p>
+                <div className="space-y-3">
+                  {fase.kpis.map((kpi, ki) => (
+                    <ProgressBar
+                      key={ki}
+                      label={kpi.metrica}
+                      value={typeof kpi.atual === 'boolean' ? (kpi.atual ? 1 : 0) : kpi.atual}
+                      max={typeof kpi.meta === 'boolean' ? 1 : kpi.meta}
+                      color={faseColors[fi]}
+                      detail={`${typeof kpi.atual === 'boolean' ? (kpi.atual ? 'Sim' : 'Não') : (kpi.unidade === 'R$' ? formatCurrency(kpi.atual) : formatNumber(kpi.atual))} / ${typeof kpi.meta === 'boolean' ? 'Sim' : (kpi.unidade === 'R$' ? formatCurrency(kpi.meta) : formatNumber(kpi.meta))}`}
+                      showPercent={false}
+                    />
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Tarefas */}
+          <SectionCard title="Tarefas de Coleta de Dados">
+            <div className="grid md:grid-cols-2 gap-2">
+              {DADOS.tarefas.map((t) => (
+                <div key={t.id} className={`flex items-center gap-3 p-2 rounded-lg ${t.status === 'concluido' ? 'bg-green-50 dark:bg-green-950/30' : 'bg-orange-50 dark:bg-orange-950/30'}`}>
+                  <span className={`w-5 h-5 rounded-full flex items-center justify-center text-xs ${
+                    t.status === 'concluido' ? 'bg-green-500 text-white' : 'bg-orange-400 text-white'
+                  }`}>
+                    {t.status === 'concluido' ? '✓' : '!'}
+                  </span>
+                  <span className={`text-sm flex-1 ${t.status === 'concluido' ? 'text-green-700 dark:text-green-400 line-through' : 'text-orange-700 dark:text-orange-400'}`}>{t.texto}</span>
+                  <Badge type={t.prioridade === 'alta' ? 'alto' : t.prioridade === 'media' ? 'medio' : 'baixo'}>{t.prioridade}</Badge>
+                </div>
+              ))}
+            </div>
+            <div className="mt-4 flex gap-4 text-sm text-center">
+              <div className="flex-1 bg-green-50 dark:bg-green-950 rounded p-2">
+                <p className="font-bold text-green-700 dark:text-green-300">{DADOS.tarefas.filter(t => t.status === 'concluido').length}</p>
+                <p className="text-xs text-green-600 dark:text-green-400">Concluídas</p>
+              </div>
+              <div className="flex-1 bg-orange-50 dark:bg-orange-950 rounded p-2">
+                <p className="font-bold text-orange-700 dark:text-orange-300">{DADOS.tarefas.filter(t => t.status === 'pendente').length}</p>
+                <p className="text-xs text-orange-600 dark:text-orange-400">Pendentes</p>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // SEÇÃO: ALERTAS E PRODUTOS (mantidas)
+    // ==========================================
+    const AlertasSection = () => {
+      const renderGroup = (tipo, icon, cls) => {
+        const items = DADOS.alertas.filter(a => a.tipo === tipo);
+        if (!items.length) return null;
+        return (
+          <div className="space-y-3">
+            {items.map((a, i) => (
+              <div key={i} className={`${cls} rounded-xl p-4`}>
+                <div className="flex items-start gap-3">
+                  <span className="text-xl">{icon}</span>
+                  <div className="flex-1">
+                    <div className="flex justify-between items-start">
+                      <h3 className="font-semibold">{a.titulo}</h3>
+                      <Badge type={tipo}>{tipo.charAt(0).toUpperCase() + tipo.slice(1)}</Badge>
+                    </div>
+                    <p className="text-sm mt-1">{a.desc}</p>
+                    <p className="text-sm mt-2 font-medium">→ {a.acao}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        );
+      };
+
+      return (
+        <div className="space-y-6">
+          <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">Alertas e Diagnósticos</h2>
+          {renderGroup('critico', '🔴', 'bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 text-red-800 dark:text-red-300')}
+          {renderGroup('alto', '🟠', 'bg-orange-50 dark:bg-orange-950 border border-orange-200 dark:border-orange-800 text-orange-800 dark:text-orange-300')}
+          {renderGroup('medio', '🟡', 'bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 text-yellow-800 dark:text-yellow-300')}
+          {renderGroup('positivo', '🟢', 'bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 text-green-800 dark:text-green-300')}
+
+          <div className="bg-blue-50 dark:bg-blue-950 border border-blue-200 dark:border-blue-800 rounded-xl p-4">
+            <h3 className="font-semibold text-blue-800 dark:text-blue-300 mb-3">Plano de Ação Prioritário</h3>
+            <div className="space-y-2">
+              {[
+                { num: 1, acao: "Renegociar contrato Webi (success fee)", impacto: "Economia R$ 5-6K/mês" },
+                { num: 2, acao: "Refinanciar dívidas (SIEMP + Cartão)", impacto: "Reduzir R$ 8K → R$ 3K/mês" },
+                { num: 3, acao: "Campanha reativação base 49K", impacto: "Recuperar 10% = R$ 20K receita" },
+                { num: 4, acao: "Prospecção 10 farmácias B2B", impacto: "Adicionar R$ 25K/mês" }
+              ].map((item, i) => (
+                <div key={i} className="flex items-center gap-3 bg-white dark:bg-gray-800 rounded-lg p-3">
+                  <span className="w-6 h-6 rounded-full bg-blue-500 text-white text-sm flex items-center justify-center font-medium flex-shrink-0">{item.num}</span>
+                  <div className="flex-1">
+                    <p className="text-sm text-gray-800 dark:text-gray-200">{item.acao}</p>
+                    <p className="text-xs text-blue-600 dark:text-blue-400">{item.impacto}</p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    const ProdutosSection = () => {
+      return (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Top 10 Produtos por Receita</h2>
+            <SectionCard>
+              <div className="overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="border-b border-gray-200 dark:border-gray-700">
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">#</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">SKU</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Produto</th>
+                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Categoria</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Qtd</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Receita</th>
+                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Markup</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                    {DADOS.topProdutos.map((p, i) => (
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                        <td className="px-3 py-2 text-gray-400 font-mono text-sm">{i + 1}</td>
+                        <td className="px-3 py-2 font-mono text-sm text-gray-600 dark:text-gray-400">{p.sku}</td>
+                        <td className="px-3 py-2 text-gray-800 dark:text-gray-200 text-sm">{p.nome}</td>
+                        <td className="px-3 py-2 text-xs"><span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{p.categoria}</span></td>
+                        <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.qtd}</td>
+                        <td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(p.receita)}</td>
+                        <td className="px-3 py-2 text-right">
+                          <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.markup >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{p.markup}%</span>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </SectionCard>
+          </div>
+
+          {/* Categorias */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Mix de Categorias</h2>
+            <SectionCard>
+              {(() => {
+                const cats = {};
+                DADOS.topProdutos.forEach(p => {
+                  if (!cats[p.categoria]) cats[p.categoria] = { receita: 0, qtd: 0, count: 0 };
+                  cats[p.categoria].receita += p.receita;
+                  cats[p.categoria].qtd += p.qtd;
+                  cats[p.categoria].count += 1;
+                });
+                const catArr = Object.entries(cats).sort((a, b) => b[1].receita - a[1].receita);
+                const totalRec = catArr.reduce((s, [, v]) => s + v.receita, 0);
+                return (
+                  <div className="grid md:grid-cols-2 gap-6">
+                    <div>
+                      {catArr.map(([cat, data], i) => (
+                        <ProgressBar key={cat} label={`${cat} (${data.count} SKUs)`} value={data.receita} max={catArr[0][1].receita} color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'} detail={`${formatCurrency(data.receita)} (${(data.receita / totalRec * 100).toFixed(0)}%)`} showPercent={false} />
+                      ))}
+                    </div>
+                    <div className="flex items-center justify-center">
+                      <PieChart
+                        data={catArr.map(([cat, data]) => ({ canal: cat, percent: (data.receita / totalRec * 100) }))}
+                        size={130}
+                      />
+                    </div>
+                  </div>
+                );
+              })()}
+            </SectionCard>
+          </div>
+
+          {/* Regiões */}
+          <div>
+            <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Vendas por Estado</h2>
+            <SectionCard>
+              <div className="grid md:grid-cols-2 gap-6">
+                <div>
+                  {DADOS.regioes.map((r, i) => (
+                    <ProgressBar key={r.uf} label={r.uf} value={r.receita} max={DADOS.regioes[0].receita} color={i === 0 ? 'green' : i < 3 ? 'blue' : 'orange'} detail={`${r.pedidos} ped. &bull; ${formatCurrency(r.receita)}`} showPercent={false} />
+                  ))}
+                </div>
+                <div className="flex items-center justify-center">
+                  <PieChart
+                    data={DADOS.regioes.slice(0, 6).map(r => ({ canal: r.uf, percent: r.percent }))}
+                    size={130}
+                    labelKey="canal"
+                  />
+                </div>
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      );
+    };
+
+    // ==========================================
+    // APP PRINCIPAL
+    // ==========================================
+    const PASSWORD = 'MdO2024@estrategia';
+
+    const App = () => {
+      const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [password, setPassword] = useState('');
+      const [error, setError] = useState('');
+      const [activeSection, setActiveSection] = useState('dashboard');
+      const [darkMode, setDarkMode] = useState(false);
+
+      useEffect(() => {
+        document.documentElement.classList.toggle('dark', darkMode);
+        document.body.className = darkMode ? 'bg-gray-900 transition-colors duration-300' : 'bg-gray-50 transition-colors duration-300';
+      }, [darkMode]);
+
+      const handleLogin = (e) => {
+        e.preventDefault();
+        if (password === PASSWORD) {
+          setIsAuthenticated(true);
+          setError('');
+        } else {
+          setError('Senha incorreta');
+        }
+      };
+
+      const sections = [
+        { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'fluxo', label: 'Fluxo de Caixa', icon: '💰' },
+        { id: 'clientes', label: 'Clientes', icon: '👥' },
+        { id: 'b2b', label: 'Canais B2B', icon: '🏢' },
+        { id: 'produtos', label: 'Produtos', icon: '📦' },
+        { id: 'metas', label: 'Metas 90d', icon: '🎯' },
+        { id: 'alertas', label: 'Alertas', icon: '⚠️' }
+      ];
+
+      if (!isAuthenticated) {
+        return (
+          <div className={`min-h-screen flex items-center justify-center p-4 ${darkMode ? 'bg-gray-900' : 'bg-gradient-to-br from-green-50 to-orange-50'}`}>
+            <div className={`rounded-2xl shadow-xl p-8 w-full max-w-md ${darkMode ? 'bg-gray-800' : 'bg-white'}`}>
+              <div className="flex items-center justify-center mb-6">
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white text-xl font-bold shadow-lg">MdO</div>
+              </div>
+              <h1 className={`text-2xl font-semibold text-center mb-2 ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Mundo dos Óleos</h1>
+              <p className={`text-center mb-6 ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Painel Estratégico de Consultoria v3</p>
+              <form onSubmit={handleLogin}>
+                <div className="mb-4">
+                  <label className={`block text-sm font-medium mb-2 ${darkMode ? 'text-gray-300' : 'text-gray-700'}`}>Senha de acesso</label>
+                  <input type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+                    className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition ${darkMode ? 'bg-gray-700 border-gray-600 text-gray-100' : 'border-gray-300'}`}
+                    placeholder="Digite a senha" autoFocus />
+                </div>
+                {error && <p className="text-red-500 text-sm mb-4">{error}</p>}
+                <button type="submit" className="w-full bg-green-600 text-white py-3 rounded-lg font-medium hover:bg-green-700 transition shadow-md">Entrar</button>
+              </form>
+              <div className="flex justify-between items-center mt-6">
+                <p className={`text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>Consultoria 90 dias &bull; Mar/2026</p>
+                <button onClick={() => setDarkMode(!darkMode)} className={`text-xs px-3 py-1 rounded-full ${darkMode ? 'bg-gray-700 text-gray-300' : 'bg-gray-100 text-gray-600'}`}>
+                  {darkMode ? '☀️ Claro' : '🌙 Escuro'}
+                </button>
+              </div>
+            </div>
+          </div>
+        );
+      }
+
+      return (
+        <div className={`min-h-screen ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+          {/* Header */}
+          <header className={`sticky top-0 z-50 border-b ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white text-sm font-bold shadow">MdO</div>
+                <div>
+                  <h1 className={`font-semibold ${darkMode ? 'text-gray-100' : 'text-gray-800'}`}>Mundo dos Óleos</h1>
+                  <p className={`text-xs ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Painel Estratégico &bull; {DADOS.fluxoCaixa.periodoAtual}</p>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 no-print">
+                <span className={`px-3 py-1 rounded-full text-xs font-medium ${DADOS.dre.resultado < 0 ? 'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300' : 'bg-green-100 text-green-700'}`}>
+                  {DADOS.dre.resultado < 0 ? 'Déficit' : 'Lucro'}: {formatCurrency(DADOS.dre.resultado)}
+                </span>
+                <button onClick={() => setDarkMode(!darkMode)} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`}>
+                  {darkMode ? '☀️' : '🌙'}
+                </button>
+                <button onClick={() => window.print()} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Exportar / Imprimir">
+                  🖨️
+                </button>
+              </div>
+            </div>
+            <div className="max-w-7xl mx-auto px-4 pb-3 no-print">
+              <div className="flex gap-1 overflow-x-auto scrollbar-hide">
+                {sections.map(s => (
+                  <button key={s.id} onClick={() => setActiveSection(s.id)}
+                    className={`px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
+                      activeSection === s.id
+                        ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
+                        : `${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'}`
+                    }`}
+                  >
+                    {s.icon} {s.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </header>
+
+          {/* Main */}
+          <main className="max-w-7xl mx-auto px-4 py-6">
+            {activeSection === 'dashboard' && <DashboardSection />}
+            {activeSection === 'fluxo' && <FluxoCaixaSection />}
+            {activeSection === 'clientes' && <AnaliseClientesSection />}
+            {activeSection === 'b2b' && <CanaisB2BSection />}
+            {activeSection === 'produtos' && <ProdutosSection />}
+            {activeSection === 'metas' && <MetasSection />}
+            {activeSection === 'alertas' && <AlertasSection />}
+          </main>
+
+          {/* Footer */}
+          <footer className={`border-t py-4 mt-8 ${darkMode ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200'}`}>
+            <div className={`max-w-7xl mx-auto px-4 text-center text-xs ${darkMode ? 'text-gray-500' : 'text-gray-400'}`}>
+              Consultoria Estratégica 90 dias &bull; v3.0 &bull; Dados: 21/03/2026 &bull; {DADOS.empresa.nomeFantasia}
+            </div>
+          </footer>
+        </div>
+      );
+    };
+
+    ReactDOM.createRoot(document.getElementById('root')).render(<App />);
+  </script>
+</body>
+</html>
