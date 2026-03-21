@@ -2928,6 +2928,7 @@
 
       const sections = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
+        { id: 'importar', label: 'Importar Dados', icon: '📥', destaque: true },
         { id: 'fluxo', label: 'Fluxo de Caixa', icon: '💰' },
         { id: 'clientes', label: 'Clientes', icon: '👥' },
         { id: 'b2c', label: 'Análise B2C', icon: '🛒' },
@@ -2935,8 +2936,7 @@
         { id: 'b2b', label: 'Canais B2B', icon: '🏢' },
         { id: 'produtos', label: 'Produtos', icon: '📦' },
         { id: 'metas', label: 'Metas 90d', icon: '🎯' },
-        { id: 'alertas', label: 'Alertas', icon: '⚠️' },
-        { id: 'importar', label: 'Importar', icon: '📥' }
+        { id: 'alertas', label: 'Alertas', icon: '⚠️' }
       ];
 
       if (!isAuthenticated) {
@@ -3000,7 +3000,9 @@
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
                       activeSection === s.id
                         ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                        : `${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'}`
+                        : s.destaque
+                          ? 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-900'
+                          : `${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'}`
                     }`}
                   >
                     {s.icon} {s.label}
