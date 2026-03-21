@@ -417,12 +417,37 @@
     // SEÇÃO: DASHBOARD
     // ==========================================
     const DashboardSection = () => {
+      const [showImportar, setShowImportar] = useState(false);
       const receitaSpark = [null, null, 70923.25, 43890.65].filter(v => v !== null);
       const pedidosSpark = [null, null, 370, 264].filter(v => v !== null);
       const ticketSpark = [null, null, 191.68, 166.25].filter(v => v !== null);
 
       return (
         <div className="space-y-6">
+          {/* Botão Importar Dados em destaque */}
+          <div className="bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-2xl p-[2px] animate-fade-in">
+            <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 flex items-center justify-between flex-wrap gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-xl bg-indigo-100 dark:bg-indigo-900 flex items-center justify-center text-2xl">📥</div>
+                <div>
+                  <h3 className="font-bold text-gray-800 dark:text-gray-100">Importar Dados</h3>
+                  <p className="text-sm text-gray-500 dark:text-gray-400">Arraste arquivos do Bling, Shopify ou RD Station — a IA identifica automaticamente</p>
+                </div>
+              </div>
+              <button onClick={() => setShowImportar(!showImportar)}
+                className="px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 text-white rounded-xl font-medium hover:from-indigo-700 hover:to-purple-700 transition shadow-lg hover:shadow-xl flex items-center gap-2">
+                {showImportar ? '✕ Fechar' : '📥 Importar Arquivos'}
+              </button>
+            </div>
+          </div>
+
+          {/* Painel de Importação (expandível) */}
+          {showImportar && (
+            <div className="animate-slide-up">
+              <ImportarSection />
+            </div>
+          )}
+
           {/* Alerta de Déficit */}
           <div className="bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-800 rounded-xl p-4 animate-fade-in">
             <div className="flex items-start gap-3">
@@ -2928,7 +2953,6 @@
 
       const sections = [
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
-        { id: 'importar', label: 'Importar Dados', icon: '📥', destaque: true },
         { id: 'fluxo', label: 'Fluxo de Caixa', icon: '💰' },
         { id: 'clientes', label: 'Clientes', icon: '👥' },
         { id: 'b2c', label: 'Análise B2C', icon: '🛒' },
@@ -3000,9 +3024,7 @@
                     className={`px-3 py-2 rounded-lg text-sm font-medium transition whitespace-nowrap ${
                       activeSection === s.id
                         ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300'
-                        : s.destaque
-                          ? 'bg-indigo-50 text-indigo-600 border border-indigo-200 hover:bg-indigo-100 dark:bg-indigo-950 dark:text-indigo-400 dark:border-indigo-800 dark:hover:bg-indigo-900'
-                          : `${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'}`
+                        : `${darkMode ? 'text-gray-400 hover:bg-gray-700' : 'text-gray-600 hover:bg-gray-100'}`
                     }`}
                   >
                     {s.icon} {s.label}
@@ -3023,7 +3045,6 @@
             {activeSection === 'produtos' && <ProdutosSection />}
             {activeSection === 'metas' && <MetasSection />}
             {activeSection === 'alertas' && <AlertasSection />}
-            {activeSection === 'importar' && <ImportarSection />}
           </main>
 
           {/* Footer */}
