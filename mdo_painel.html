@@ -639,6 +639,498 @@
     };
 
     // ==========================================
+    // SEÇÃO: ANÁLISE B2C (NOVA)
+    // ==========================================
+    const AnaliseB2CSection = () => {
+      const [subTab, setSubTab] = useState('perfil');
+
+      // Dados derivados B2C
+      const clientesB2C = DADOS.topClientes.filter(c => c.tipo === 'B2C');
+      const totalReceitaB2C = clientesB2C.reduce((s, c) => s + c.valor, 0);
+      const totalPedidosB2C = clientesB2C.reduce((s, c) => s + c.pedidos, 0);
+      const ticketMedioB2C = totalPedidosB2C > 0 ? totalReceitaB2C / totalPedidosB2C : 0;
+      const avgProdutosPorPedido = clientesB2C.reduce((s, c) => s + c.produtos, 0) / totalPedidosB2C;
+      const recorrentes = clientesB2C.filter(c => c.recompra);
+      const comprUnica = clientesB2C.filter(c => !c.recompra);
+
+      // Distribuição por faixa de valor
+      const faixas = [
+        { faixa: 'Até R$ 500', min: 0, max: 500, color: 'blue' },
+        { faixa: 'R$ 500–1.000', min: 500, max: 1000, color: 'green' },
+        { faixa: 'R$ 1.000–2.000', min: 1000, max: 2000, color: 'orange' },
+        { faixa: 'Acima de R$ 2.000', min: 2000, max: Infinity, color: 'purple' }
+      ].map(f => ({
+        ...f,
+        clientes: clientesB2C.filter(c => c.valor >= f.min && c.valor < f.max),
+        qtd: clientesB2C.filter(c => c.valor >= f.min && c.valor < f.max).length,
+        receita: clientesB2C.filter(c => c.valor >= f.min && c.valor < f.max).reduce((s, c) => s + c.valor, 0)
+      }));
+
+      // Categorias de produto para cross-sell
+      const categorias = {};
+      DADOS.topProdutos.forEach(p => {
+        if (!categorias[p.categoria]) categorias[p.categoria] = { receita: 0, qtd: 0, itens: [] };
+        categorias[p.categoria].receita += p.receita;
+        categorias[p.categoria].qtd += p.qtd;
+        categorias[p.categoria].itens.push(p);
+      });
+
+      // Concentração geográfica B2C
+      const ufB2C = {};
+      clientesB2C.forEach(c => {
+        if (c.uf) {
+          if (!ufB2C[c.uf]) ufB2C[c.uf] = { qtd: 0, receita: 0 };
+          ufB2C[c.uf].qtd += 1;
+          ufB2C[c.uf].receita += c.valor;
+        }
+      });
+      const ufArr = Object.entries(ufB2C).sort((a, b) => b[1].receita - a[1].receita);
+
+      // Sugestões de combos
+      const combos = [
+        { nome: 'Kit Aromaterapia Essencial', produtos: ['Óleo Essencial Lavanda', 'Óleo Essencial Alecrim', 'Óleo Essencial Olíbano'], precoSugerido: 189.90, margemEst: 82, target: 'Iniciantes em aromaterapia' },
+        { nome: 'Kit Skincare Natural', produtos: ['Blend Facial 60ml', 'Óleo de Jojoba', 'Óleo de Rosa Mosqueta'], precoSugerido: 249.90, margemEst: 78, target: 'Cuidados com a pele' },
+        { nome: 'Kit Massagem Profissional', produtos: ['Óleo Semente de Uva 1L', 'Óleo Essencial Gerânio', 'Óleo de Moringa'], precoSugerido: 199.90, margemEst: 75, target: 'Massoterapeutas e uso pessoal' },
+        { nome: 'Kit Cabelos Saudáveis', produtos: ['Óleo de Mamona 500ml', 'Óleo de Argan', 'Óleo de Coco Extra Virgem'], precoSugerido: 159.90, margemEst: 72, target: 'Tratamento capilar natural' },
+        { nome: 'Kit Home Spa', produtos: ['Óleo Essencial Lavanda', 'Blend Relaxante', 'Difusor de Aromas'], precoSugerido: 219.90, margemEst: 80, target: 'Presente e autocuidado' }
+      ];
+
+      const subTabs = [
+        { id: 'perfil', label: 'Perfil do Consumidor' },
+        { id: 'funil', label: 'Funil & Conversão' },
+        { id: 'crosssell', label: 'Produtos & Cross-sell' },
+        { id: 'retencao', label: 'Retenção & Reativação' }
+      ];
+
+      return (
+        <div className="space-y-6">
+          {/* Sub-navegação */}
+          <div className="flex gap-2 flex-wrap no-print">
+            {subTabs.map(t => (
+              <button key={t.id} onClick={() => setSubTab(t.id)}
+                className={`px-4 py-2 rounded-lg text-sm font-medium transition ${
+                  subTab === t.id ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900 dark:text-emerald-300' : 'text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700'
+                }`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
+
+          {/* ========== PERFIL DO CONSUMIDOR ========== */}
+          {subTab === 'perfil' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* KPIs */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard label="Clientes B2C (top)" value={clientesB2C.length} subvalue={`de ${DADOS.topClientes.length} top clientes`} color="blue" />
+                <KPICard label="Ticket Médio B2C" value={formatCurrency(ticketMedioB2C)} subvalue="por pedido" color="green" />
+                <KPICard label="Itens por Pedido" value={avgProdutosPorPedido.toFixed(1)} subvalue="média de produtos" />
+                <KPICard label="LTV Estimado (12m)" value={formatCurrency(ticketMedioB2C * 3.2)} subvalue="~3,2 compras/ano" color="green" />
+              </div>
+
+              {/* Distribuição por faixa de valor */}
+              <SectionCard title="Distribuição por Faixa de Valor">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    {faixas.map((f, i) => (
+                      <ProgressBar key={i} label={`${f.faixa} (${f.qtd} cliente${f.qtd !== 1 ? 's' : ''})`} value={f.receita} max={faixas.reduce((m, x) => Math.max(m, x.receita), 0)} color={f.color} detail={formatCurrency(f.receita)} showPercent={false} />
+                    ))}
+                  </div>
+                  <div>
+                    <PieChart data={faixas.filter(f => f.qtd > 0).map(f => ({ canal: f.faixa, percent: (f.qtd / clientesB2C.length * 100) }))} size={120} />
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Perfil comportamental */}
+              <div className="grid md:grid-cols-2 gap-6">
+                <SectionCard title="Comportamento de Compra">
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Canal predominante</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">Shopify (99,2%)</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Método de descoberta</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">Google / Instagram (est.)</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Freq. média de compra</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">~3,2x / ano</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Categoria favorita</span>
+                      <span className="font-medium text-gray-800 dark:text-gray-200">Óleos Essenciais</span>
+                    </div>
+                    <div className="flex justify-between items-center py-2">
+                      <span className="text-sm text-gray-600 dark:text-gray-400">Ticket acima da média</span>
+                      <span className="font-bold text-green-600 dark:text-green-400">{clientesB2C.filter(c => c.ticketMedio > DADOS.receita.ticketMedio).length} de {clientesB2C.length} clientes</span>
+                    </div>
+                  </div>
+                </SectionCard>
+
+                <SectionCard title="Concentração Geográfica B2C">
+                  {ufArr.length > 0 ? ufArr.map(([uf, data], i) => (
+                    <ProgressBar key={uf} label={`${uf} (${data.qtd} cliente${data.qtd > 1 ? 's' : ''})`} value={data.receita} max={ufArr[0][1].receita} color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'} detail={formatCurrency(data.receita)} showPercent={false} />
+                  )) : <p className="text-sm text-gray-500">Dados regionais limitados para top clientes B2C</p>}
+                  <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs text-blue-700 dark:text-blue-400">
+                      Base completa: DF lidera com 42% dos pedidos. Potencial de expansão em SP (20%) e MG (6%).
+                    </p>
+                  </div>
+                </SectionCard>
+              </div>
+
+              {/* Recorrentes vs Compra Única */}
+              <SectionCard title="Recorrentes vs Compra Única">
+                <div className="grid grid-cols-2 gap-6">
+                  <div className="text-center p-4 bg-green-50 dark:bg-green-950 rounded-xl border border-green-200 dark:border-green-800">
+                    <p className="text-4xl font-bold text-green-600 dark:text-green-400">{recorrentes.length}</p>
+                    <p className="text-sm text-green-700 dark:text-green-400 mt-1">Clientes recorrentes</p>
+                    <p className="text-xs text-green-600 dark:text-green-500 mt-2">Receita: {formatCurrency(recorrentes.reduce((s, c) => s + c.valor, 0))}</p>
+                    <p className="text-xs text-green-600 dark:text-green-500">Ticket: {formatCurrency(recorrentes.length > 0 ? recorrentes.reduce((s, c) => s + c.valor, 0) / recorrentes.reduce((s, c) => s + c.pedidos, 0) : 0)}</p>
+                  </div>
+                  <div className="text-center p-4 bg-orange-50 dark:bg-orange-950 rounded-xl border border-orange-200 dark:border-orange-800">
+                    <p className="text-4xl font-bold text-orange-600 dark:text-orange-400">{comprUnica.length}</p>
+                    <p className="text-sm text-orange-700 dark:text-orange-400 mt-1">Compra única</p>
+                    <p className="text-xs text-orange-600 dark:text-orange-500 mt-2">Receita: {formatCurrency(comprUnica.reduce((s, c) => s + c.valor, 0))}</p>
+                    <p className="text-xs text-orange-600 dark:text-orange-500">Risco de churn alto</p>
+                  </div>
+                </div>
+                <div className="mt-4 p-3 bg-yellow-50 dark:bg-yellow-950 rounded-lg border border-yellow-200 dark:border-yellow-800">
+                  <p className="text-sm font-medium text-yellow-800 dark:text-yellow-300">Insight</p>
+                  <p className="text-xs text-yellow-700 dark:text-yellow-400 mt-1">
+                    Clientes recorrentes geram {((recorrentes.reduce((s, c) => s + c.valor, 0) / totalReceitaB2C) * 100).toFixed(0)}% da receita B2C.
+                    Converter os {comprUnica.length} clientes de compra única em recorrentes pode aumentar a receita em até {formatCurrency(comprUnica.reduce((s, c) => s + c.valor, 0) * 0.4)}.
+                  </p>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* ========== FUNIL & CONVERSÃO ========== */}
+          {subTab === 'funil' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Funil visual */}
+              <SectionCard title="Funil de Conversão B2C">
+                <div className="space-y-1">
+                  {[
+                    { etapa: 'Base cadastrada', valor: 49000, percent: 100, color: 'bg-blue-500', desc: 'Todos os clientes no sistema' },
+                    { etapa: 'Compraram alguma vez', valor: 21560, percent: 44, color: 'bg-indigo-500', desc: '44% taxa de conversão histórica' },
+                    { etapa: 'Ativos (últimos 12 meses)', valor: 4900, percent: 10, color: 'bg-purple-500', desc: 'Estimativa ~10% da base' },
+                    { etapa: 'Ativos (últimos 90 dias)', valor: 788, percent: 1.6, color: 'bg-orange-500', desc: 'Estimativa baseada na sazonalidade' },
+                    { etapa: 'Compraram em Março/26', valor: 264, percent: 0.54, color: 'bg-red-500', desc: '264 pedidos no período' }
+                  ].map((item, i) => (
+                    <div key={i} className="animate-slide-up" style={{ animationDelay: `${i * 80}ms` }}>
+                      <div className="flex items-center gap-3 mb-1">
+                        <span className={`w-3 h-3 rounded-full ${item.color} flex-shrink-0`} />
+                        <span className="text-sm font-medium text-gray-800 dark:text-gray-200 flex-1">{item.etapa}</span>
+                        <span className="text-sm font-bold text-gray-800 dark:text-gray-200">{formatNumber(item.valor)}</span>
+                        <span className="text-xs text-gray-500 dark:text-gray-400 w-16 text-right">{item.percent}%</span>
+                      </div>
+                      <div className="ml-6 mb-3">
+                        <div className="h-6 bg-gray-100 dark:bg-gray-700 rounded overflow-hidden">
+                          <div className={`h-full ${item.color} rounded flex items-center justify-end pr-2 transition-all duration-700`} style={{ width: `${Math.max(item.percent, 2)}%` }}>
+                            {item.percent > 15 && <span className="text-xs text-white font-medium">{formatNumber(item.valor)}</span>}
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">{item.desc}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </SectionCard>
+
+              {/* Taxas de conversão entre etapas */}
+              <div className="grid md:grid-cols-3 gap-4">
+                {[
+                  { de: 'Base → Compradores', taxa: 44, meta: 50, status: 'bom', insight: 'Taxa saudável para e-commerce de nicho' },
+                  { de: 'Compradores → Ativos 12m', taxa: 22.7, meta: 35, status: 'atenção', insight: '77% dos compradores ficam inativos por +1 ano' },
+                  { de: 'Ativos 12m → Compra Março', taxa: 5.4, meta: 10, status: 'crítico', insight: 'Apenas 5% dos ativos compraram este mês' }
+                ].map((conv, i) => (
+                  <SectionCard key={i}>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">{conv.de}</p>
+                    <div className="flex items-end gap-2 mt-2">
+                      <p className={`text-3xl font-bold ${conv.status === 'bom' ? 'text-green-600 dark:text-green-400' : conv.status === 'atenção' ? 'text-orange-600 dark:text-orange-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {conv.taxa}%
+                      </p>
+                      <p className="text-sm text-gray-400 dark:text-gray-500 mb-1">meta: {conv.meta}%</p>
+                    </div>
+                    <ProgressBar value={conv.taxa} max={conv.meta} color={conv.status === 'bom' ? 'green' : conv.status === 'atenção' ? 'orange' : 'red'} label="" showPercent={false} />
+                    <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">{conv.insight}</p>
+                  </SectionCard>
+                ))}
+              </div>
+
+              {/* Oportunidade de volume */}
+              <SectionCard title="Simulador de Impacto — Reativação B2C">
+                <div className="grid md:grid-cols-3 gap-6">
+                  {[
+                    { cenario: 'Conservador', taxaReativ: 3, clientes: 600, receitaEst: 600 * 150, color: 'orange' },
+                    { cenario: 'Moderado', taxaReativ: 5, clientes: 1000, receitaEst: 1000 * 150, color: 'blue' },
+                    { cenario: 'Agressivo', taxaReativ: 10, clientes: 2000, receitaEst: 2000 * 150, color: 'green' }
+                  ].map((c, i) => (
+                    <div key={i} className={`text-center p-4 rounded-xl border bg-${c.color}-50 dark:bg-${c.color}-950 border-${c.color}-200 dark:border-${c.color}-800`}>
+                      <p className="text-xs text-gray-500 dark:text-gray-400 uppercase">{c.cenario}</p>
+                      <p className={`text-sm text-${c.color}-600 dark:text-${c.color}-400 mt-1`}>Reativar {c.taxaReativ}% dos inativos</p>
+                      <p className={`text-2xl font-bold text-${c.color}-700 dark:text-${c.color}-300 mt-2`}>{formatNumber(c.clientes)}</p>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">clientes recuperados</p>
+                      <div className={`mt-3 pt-3 border-t border-${c.color}-200 dark:border-${c.color}-700`}>
+                        <p className={`text-lg font-bold text-${c.color}-700 dark:text-${c.color}-300`}>{formatCurrency(c.receitaEst)}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">receita estimada (ticket R$ 150)</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-4 p-3 bg-green-50 dark:bg-green-950 rounded-lg border border-green-200 dark:border-green-800">
+                  <p className="text-sm font-medium text-green-800 dark:text-green-300">Custo estimado da campanha: R$ 500–1.500 (e-mail + WhatsApp)</p>
+                  <p className="text-xs text-green-700 dark:text-green-400 mt-1">ROI mínimo (cenário conservador): {((600 * 150 / 1500) * 100).toFixed(0)}x o investimento</p>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* ========== PRODUTOS & CROSS-SELL ========== */}
+          {subTab === 'crosssell' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Mix de categorias */}
+              <SectionCard title="Categorias Mais Vendidas (B2C)">
+                <div className="grid md:grid-cols-2 gap-6">
+                  <div>
+                    {Object.entries(categorias).sort((a, b) => b[1].receita - a[1].receita).map(([cat, data], i) => (
+                      <div key={cat} className="mb-4">
+                        <div className="flex justify-between text-sm mb-1">
+                          <span className="font-medium text-gray-700 dark:text-gray-300">{cat}</span>
+                          <span className="text-gray-600 dark:text-gray-400">{data.itens.length} SKUs &bull; {data.qtd} un.</span>
+                        </div>
+                        <ProgressBar value={data.receita} max={Object.values(categorias).reduce((m, v) => Math.max(m, v.receita), 0)} color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'} label="" detail={formatCurrency(data.receita)} showPercent={false} />
+                      </div>
+                    ))}
+                  </div>
+                  <div className="flex items-center justify-center">
+                    {(() => {
+                      const totalCat = Object.values(categorias).reduce((s, v) => s + v.receita, 0);
+                      return <PieChart data={Object.entries(categorias).sort((a, b) => b[1].receita - a[1].receita).map(([cat, data]) => ({ canal: cat, percent: (data.receita / totalCat * 100) }))} size={130} />;
+                    })()}
+                  </div>
+                </div>
+              </SectionCard>
+
+              {/* Sugestões de Kits / Combos */}
+              <div>
+                <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Kits & Combos Sugeridos para B2C</h2>
+                <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {combos.map((combo, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-lg transition animate-slide-up" style={{ animationDelay: `${i * 60}ms` }}>
+                      <div className="flex justify-between items-start mb-2">
+                        <h4 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{combo.nome}</h4>
+                        <span className="px-2 py-0.5 bg-green-100 dark:bg-green-900 text-green-700 dark:text-green-300 rounded text-xs font-medium">{combo.margemEst}% margem</span>
+                      </div>
+                      <div className="space-y-1 mb-3">
+                        {combo.produtos.map((p, j) => (
+                          <p key={j} className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                            <span className="w-1.5 h-1.5 rounded-full bg-green-400 flex-shrink-0" /> {p}
+                          </p>
+                        ))}
+                      </div>
+                      <div className="flex justify-between items-end pt-2 border-t border-gray-100 dark:border-gray-700">
+                        <div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Preço sugerido</p>
+                          <p className="text-lg font-bold text-green-600 dark:text-green-400">{formatCurrency(combo.precoSugerido)}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-gray-500 dark:text-gray-400">Target</p>
+                          <p className="text-xs font-medium text-gray-700 dark:text-gray-300">{combo.target}</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Produtos estrela */}
+              <SectionCard title="Produtos Estrela — Alto Markup + Alta Demanda">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Produto</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Qtd</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Receita</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Markup</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Potencial</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {DADOS.topProdutos.filter(p => p.markup >= 78).sort((a, b) => b.receita - a.receita).map((p, i) => (
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                          <td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-200">{p.nome}</td>
+                          <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.qtd}</td>
+                          <td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(p.receita)}</td>
+                          <td className="px-3 py-2 text-right">
+                            <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.markup >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300'}`}>{p.markup}%</span>
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <span className="px-2 py-0.5 rounded-full text-xs bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300">
+                              {p.qtd >= 10 ? 'Escalar ads' : p.markup >= 90 ? 'Destaque loja' : 'Kit/combo'}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionCard>
+            </div>
+          )}
+
+          {/* ========== RETENÇÃO & REATIVAÇÃO ========== */}
+          {subTab === 'retencao' && (
+            <div className="space-y-6 animate-fade-in">
+              {/* Métricas de retenção */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <KPICard label="Taxa Recompra (geral)" value="44%" subvalue="da base total" trend="up" color="green" />
+                <KPICard label="Clientes Inativos (est.)" value="~20.000" subvalue="sem compra há 6+ meses" trend="down" color="red" />
+                <KPICard label="Receita Perdida (est.)" value={formatCurrency(20000 * 150 * 0.05)} subvalue="se 5% reativados" color="orange" />
+                <KPICard label="Custo Reativação" value="~R$ 1,50" subvalue="por e-mail enviado" color="blue" />
+              </div>
+
+              {/* Cohort simplificado */}
+              <SectionCard title="Análise de Cohort Simplificada">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead>
+                      <tr className="border-b border-gray-200 dark:border-gray-700">
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Segmento</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Clientes Est.</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">% da Base</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Receita Potencial</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-400">Ação Sugerida</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
+                      {[
+                        { seg: 'Compradores frequentes (3+ pedidos/ano)', clientes: 2450, pct: 5, receita: 2450 * 350, acao: 'Programa fidelidade', color: 'green' },
+                        { seg: 'Compradores regulares (1-2/ano)', clientes: 7350, pct: 15, receita: 7350 * 180, acao: 'Upsell + cross-sell', color: 'blue' },
+                        { seg: 'Inativos recentes (6-12 meses)', clientes: 5880, pct: 12, receita: 5880 * 150, acao: 'Cupom reativação 10%', color: 'orange' },
+                        { seg: 'Inativos antigos (12+ meses)', clientes: 14700, pct: 30, receita: 14700 * 100, acao: 'Campanha e-mail + WhatsApp', color: 'red' },
+                        { seg: 'Nunca compraram', clientes: 18620, pct: 38, receita: 18620 * 80, acao: 'Nutrição de leads', color: 'purple' }
+                      ].map((row, i) => (
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                          <td className="px-3 py-3 text-sm text-gray-800 dark:text-gray-200">{row.seg}</td>
+                          <td className="px-3 py-3 text-right font-medium text-gray-700 dark:text-gray-300">{formatNumber(row.clientes)}</td>
+                          <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{row.pct}%</td>
+                          <td className="px-3 py-3 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(row.receita)}</td>
+                          <td className="px-3 py-3 text-center">
+                            <span className={`px-2 py-0.5 rounded text-xs bg-${row.color}-100 text-${row.color}-700 dark:bg-${row.color}-900 dark:text-${row.color}-300`}>{row.acao}</span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </SectionCard>
+
+              {/* Estratégias de retenção */}
+              <div>
+                <h2 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-3">Estratégias de Retenção & Reativação</h2>
+                <div className="grid md:grid-cols-2 gap-4">
+                  {[
+                    {
+                      titulo: 'E-mail de Reativação Segmentado',
+                      icon: '📧',
+                      descricao: 'Campanha em 3 touchpoints para inativos 6-12 meses',
+                      metricas: ['Base alvo: ~5.880 clientes', 'Taxa abertura esperada: 25-30%', 'Conversão esperada: 3-5%', 'Receita estimada: R$ 26K-44K'],
+                      custo: 'R$ 500-800',
+                      roi: '35-55x',
+                      prioridade: 'critico'
+                    },
+                    {
+                      titulo: 'WhatsApp para Top 500 Inativos',
+                      icon: '💬',
+                      descricao: 'Mensagem personalizada com oferta exclusiva para alto valor',
+                      metricas: ['Base alvo: 500 clientes (ticket > R$ 300)', 'Taxa resposta esperada: 40-50%', 'Conversão esperada: 15-20%', 'Receita estimada: R$ 22K-30K'],
+                      custo: 'R$ 200 (tempo da equipe)',
+                      roi: '110-150x',
+                      prioridade: 'critico'
+                    },
+                    {
+                      titulo: 'Programa de Fidelidade por Pontos',
+                      icon: '⭐',
+                      descricao: 'R$ 1 = 1 ponto. 500 pontos = 10% desconto na próxima compra',
+                      metricas: ['Aumento de frequência: +30%', 'Aumento de ticket: +15%', 'Retenção esperada: +25%', 'Receita adicional: R$ 8K-12K/mês'],
+                      custo: 'R$ 2.000 (setup) + 5% margem',
+                      roi: '4-6x mensal',
+                      prioridade: 'alto'
+                    },
+                    {
+                      titulo: 'Automação Pós-Compra (Shopify)',
+                      icon: '🤖',
+                      descricao: 'Fluxo automático: agradecimento → dica de uso → recompra 30 dias',
+                      metricas: ['Impacto em recompra: +20-30%', 'Avaliações geradas: +50%', 'Custo recorrente: R$ 0 (Shopify Flow)', 'Receita adicional: R$ 5K-8K/mês'],
+                      custo: 'R$ 0 (já incluso no Shopify)',
+                      roi: 'Infinito',
+                      prioridade: 'alto'
+                    }
+                  ].map((est, i) => (
+                    <div key={i} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4 hover:shadow-md transition">
+                      <div className="flex items-start gap-3">
+                        <span className="text-2xl">{est.icon}</span>
+                        <div className="flex-1">
+                          <div className="flex justify-between items-start mb-1">
+                            <h4 className="font-semibold text-gray-800 dark:text-gray-200 text-sm">{est.titulo}</h4>
+                            <Badge type={est.prioridade}>{est.prioridade}</Badge>
+                          </div>
+                          <p className="text-xs text-gray-500 dark:text-gray-400 mb-3">{est.descricao}</p>
+                          <div className="space-y-1 mb-3">
+                            {est.metricas.map((m, j) => (
+                              <p key={j} className="text-xs text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-green-400 flex-shrink-0" /> {m}
+                              </p>
+                            ))}
+                          </div>
+                          <div className="flex justify-between text-xs pt-2 border-t border-gray-100 dark:border-gray-700">
+                            <span className="text-gray-500 dark:text-gray-400">Custo: <strong className="text-gray-700 dark:text-gray-300">{est.custo}</strong></span>
+                            <span className="text-green-600 dark:text-green-400 font-bold">ROI: {est.roi}</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Resumo de impacto total */}
+              <div className="bg-green-50 dark:bg-green-950 border border-green-200 dark:border-green-800 rounded-xl p-5">
+                <h3 className="font-semibold text-green-800 dark:text-green-300 mb-3">Impacto Total Estimado — Plano de Retenção B2C</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                  <div>
+                    <p className="text-sm text-green-600 dark:text-green-400">Receita adicional/mês</p>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(35000)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 dark:text-green-400">Clientes reativados</p>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">~1.200</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 dark:text-green-400">Investimento total</p>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">{formatCurrency(3500)}</p>
+                  </div>
+                  <div>
+                    <p className="text-sm text-green-600 dark:text-green-400">ROI estimado</p>
+                    <p className="text-2xl font-bold text-green-700 dark:text-green-300">10x</p>
+                  </div>
+                </div>
+                <p className="text-xs text-green-700 dark:text-green-400 mt-3 text-center">
+                  Se implementado, o plano de retenção B2C sozinho pode cobrir ~50% do déficit operacional atual de R$ 28.467/mês
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+      );
+    };
+
+    // ==========================================
     // SEÇÃO: CANAIS B2B
     // ==========================================
     const CanaisB2BSection = () => {
@@ -1344,6 +1836,7 @@
         { id: 'dashboard', label: 'Dashboard', icon: '📊' },
         { id: 'fluxo', label: 'Fluxo de Caixa', icon: '💰' },
         { id: 'clientes', label: 'Clientes', icon: '👥' },
+        { id: 'b2c', label: 'Análise B2C', icon: '🛒' },
         { id: 'b2b', label: 'Canais B2B', icon: '🏢' },
         { id: 'produtos', label: 'Produtos', icon: '📦' },
         { id: 'metas', label: 'Metas 90d', icon: '🎯' },
@@ -1426,6 +1919,7 @@
             {activeSection === 'dashboard' && <DashboardSection />}
             {activeSection === 'fluxo' && <FluxoCaixaSection />}
             {activeSection === 'clientes' && <AnaliseClientesSection />}
+            {activeSection === 'b2c' && <AnaliseB2CSection />}
             {activeSection === 'b2b' && <CanaisB2BSection />}
             {activeSection === 'produtos' && <ProdutosSection />}
             {activeSection === 'metas' && <MetasSection />}
