@@ -2447,51 +2447,56 @@
             try {
               const wb = XLSX.read(e.target.result, { type: 'array', cellDates: true });
               const ws = wb.Sheets[wb.SheetNames[0]];
-              let json = XLSX.utils.sheet_to_json(ws, { defval: '' });
-              let colunas = json.length > 0 ? Object.keys(json[0]) : [];
-              let linhasTituloPuladas = 0;
+              // Parse raw (sem headers) para controlar melhor
+              const jsonRaw = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
+              if (!jsonRaw || jsonRaw.length === 0) {
+                resolve({ colunas: [], dados: [], erros: 0, abas: wb.SheetNames });
+                return;
+              }
 
-              // Detectar linha de título do Bling (primeira coluna = "Meu Negócio" ou nome genérico)
-              // Se a primeira linha parece um título e a segunda tem headers reais, pular
-              if (json.length > 1) {
-                const primeiraLinha = Object.values(json[0]).map(v => String(v).trim());
-                const primeiroValor = primeiraLinha[0] || '';
-                const restVazios = primeiraLinha.slice(1).filter(v => v && v !== '').length;
+              // Detectar onde estão os headers reais
+              // Bling coloca "Meu Negócio - Bling" na linha 1, headers na linha 2
+              let headerRowIdx = 0;
+              for (let i = 0; i < Math.min(jsonRaw.length, 5); i++) {
+                const row = jsonRaw[i];
+                if (!row || row.length === 0) continue;
+                const firstCell = String(row[0] || '').toLowerCase().trim();
+                const filledCells = row.filter(v => v != null && String(v).trim() !== '').length;
 
-                // Padrão Bling: primeira célula tem "Meu Negócio" e o resto é vazio/undefined
-                // Ou: primeira linha tem poucos valores preenchidos vs quantidade de colunas
-                const pareceLinhaDoTitulo = (
-                  primeiroValor.toLowerCase().includes('meu neg') ||
-                  primeiroValor.toLowerCase().includes('bling') ||
-                  primeiroValor.toLowerCase().includes('relat') ||
-                  (restVazios <= 1 && colunas.length >= 4)
-                );
+                // Se a linha tem apenas 1 célula preenchida e parece título, pular
+                if (filledCells <= 1 && (
+                  firstCell.includes('meu neg') || firstCell.includes('bling') ||
+                  firstCell.includes('relat') || firstCell.includes('meu negocio')
+                )) {
+                  headerRowIdx = i + 1;
+                  continue;
+                }
 
-                if (pareceLinhaDoTitulo) {
-                  // Re-parse usando a segunda linha como header
-                  const jsonRaw = XLSX.utils.sheet_to_json(ws, { defval: '', header: 1 });
-                  if (jsonRaw.length > 2) {
-                    // Achar a primeira linha que parece header (tem múltiplos valores texto)
-                    let headerRow = 1;
-                    for (let i = 1; i < Math.min(jsonRaw.length, 5); i++) {
-                      const row = jsonRaw[i];
-                      const textValues = row.filter(v => v && String(v).trim() && isNaN(String(v).replace(/[R$\s.,]/g, '')));
-                      if (textValues.length >= 2) { headerRow = i; break; }
-                    }
-                    const headers = jsonRaw[headerRow].map((h, idx) => h ? String(h).trim() : `Coluna_${idx + 1}`);
-                    const dataRows = jsonRaw.slice(headerRow + 1)
-                      .filter(row => row.some(v => v !== '' && v != null))
-                      .map(row => {
-                        const obj = {};
-                        headers.forEach((h, idx) => { obj[h] = row[idx] != null ? row[idx] : ''; });
-                        return obj;
-                      });
-                    colunas = headers;
-                    json = dataRows;
-                    linhasTituloPuladas = headerRow;
-                  }
+                // Se a linha tem múltiplas células texto (não números), é provavelmente o header
+                const textCells = row.filter(v => {
+                  const s = String(v || '').trim();
+                  return s && isNaN(s.replace(/[R$%\s.,]/g, ''));
+                });
+                if (textCells.length >= 2 && filledCells >= 2) {
+                  headerRowIdx = i;
+                  break;
                 }
               }
+
+              const headers = jsonRaw[headerRowIdx].map((h, idx) => {
+                const s = h != null ? String(h).trim() : '';
+                return s || `Coluna_${idx + 1}`;
+              });
+              const dataRows = jsonRaw.slice(headerRowIdx + 1)
+                .filter(row => row && row.some(v => v != null && String(v).trim() !== ''))
+                .map(row => {
+                  const obj = {};
+                  headers.forEach((h, idx) => { obj[h] = row[idx] != null ? row[idx] : ''; });
+                  return obj;
+                });
+
+              let colunas = headers;
+              let json = dataRows;
 
               resolve({ colunas, dados: json, erros: 0, abas: wb.SheetNames, linhasTituloPuladas });
             } catch (err) { reject(err); }
