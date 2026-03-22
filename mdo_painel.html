@@ -87,7 +87,48 @@
     };
 
     // ==========================================
-    // DADOS CONSOLIDADOS (COMPLETO)
+    // HOOK: CARREGAR DADOS DO SUPABASE
+    // ==========================================
+    const useSupabaseData = () => {
+      const [dbData, setDbData] = useState(null);
+      const [loading, setLoading] = useState(true);
+      const [dbStatus, setDbStatus] = useState('conectando');
+
+      const carregarDados = useCallback(async () => {
+        setLoading(true);
+        try {
+          const [clientes, produtos, vendasEstado, vendasCanal, vendasPeriodo, custos, importacoes] = await Promise.all([
+            db.getAll('clientes'),
+            db.getAll('produtos'),
+            db.getAll('vendas_estado'),
+            db.getAll('vendas_canal'),
+            db.getAll('vendas_periodo'),
+            db.getAll('custos'),
+            db.getAll('importacoes')
+          ]);
+
+          const temDados = clientes.length > 0 || produtos.length > 0;
+
+          if (temDados) {
+            setDbData({ clientes, produtos, vendasEstado, vendasCanal, vendasPeriodo, custos, importacoes });
+            setDbStatus('conectado');
+          } else {
+            setDbStatus('vazio');
+          }
+        } catch (err) {
+          console.error('Erro ao carregar Supabase:', err);
+          setDbStatus('offline');
+        }
+        setLoading(false);
+      }, []);
+
+      useEffect(() => { carregarDados(); }, [carregarDados]);
+
+      return { dbData, loading, dbStatus, recarregar: carregarDados };
+    };
+
+    // ==========================================
+    // DADOS CONSOLIDADOS (FALLBACK / HARDCODED)
     // ==========================================
     const DADOS = {
       empresa: {
@@ -543,7 +584,7 @@
     // ==========================================
     // SEÇÃO: DASHBOARD
     // ==========================================
-    const DashboardSection = () => {
+    const DashboardSection = ({ onDataApplied }) => {
       const [showImportar, setShowImportar] = useState(false);
       const receitaSpark = [null, null, 70923.25, 43890.65].filter(v => v !== null);
       const pedidosSpark = [null, null, 370, 264].filter(v => v !== null);
@@ -571,7 +612,7 @@
           {/* Painel de Importação (expandível) */}
           {showImportar && (
             <div className="animate-slide-up">
-              <ImportarSection />
+              <ImportarSection onDataApplied={onDataApplied} />
             </div>
           )}
 
@@ -2653,7 +2694,7 @@
       });
     };
 
-    const ImportarSection = () => {
+    const ImportarSection = ({ onDataApplied }) => {
       const [arquivos, setArquivos] = useState([]);
       const [processando, setProcessando] = useState(false);
       const [dragOver, setDragOver] = useState(false);
@@ -2807,6 +2848,8 @@
 
           setArquivos(prev => prev.map(a => a.id === arqId ? { ...a, aplicado: true, status: 'aplicado' } : a));
           setHistorico(prev => [...prev, { data: new Date().toLocaleString('pt-BR'), arquivo: arq.nomeArquivo, tipo: arq.tipoDetectado?.label, linhas: arq.totalLinhas }]);
+          // Recarregar dados do Supabase em todas as seções
+          if (onDataApplied) onDataApplied();
         } catch (err) {
           console.error('Erro ao aplicar dados:', err);
           alert('Erro ao salvar no Supabase: ' + err.message);
@@ -3301,6 +3344,76 @@
       const [error, setError] = useState('');
       const [activeSection, setActiveSection] = useState('dashboard');
       const [darkMode, setDarkMode] = useState(false);
+      const { dbData, loading, dbStatus, recarregar } = useSupabaseData();
+
+      // Mesclar dados do Supabase com dados hardcoded (Supabase tem prioridade)
+      const dadosAtivos = useMemo(() => {
+        if (!dbData) return { fonte: 'local', clientes: CLIENTES_RFM, ...DADOS };
+
+        // Clientes: usar do Supabase se tiver, senão hardcoded
+        const clientesDB = dbData.clientes.length > 0 ? dbData.clientes.map((c, i) => ({
+          id: c.id,
+          nome: c.nome,
+          tipo: c.tipo || 'B2C',
+          uf: c.uf,
+          ultimaCompra: c.ultima_compra,
+          diasDesdeUltima: c.ultima_compra ? Math.floor((new Date() - new Date(c.ultima_compra)) / 86400000) : 999,
+          totalPedidos: c.total_pedidos || 0,
+          frequenciaMensal: c.frequencia_mensal || 0,
+          totalGasto: parseFloat(c.total_gasto) || 0,
+          ticketMedio: parseFloat(c.ticket_medio) || 0,
+          markup: parseFloat(c.markup) || 0,
+          lucro: parseFloat(c.lucro) || 0,
+          celular: c.celular,
+          loja: c.loja || 'Shopify',
+          segmento: c.segmento,
+          acaoCliente: c.acao_sugerida,
+          ultimosProdutos: c.ultimos_produtos || [],
+          periodoCliente: c.periodo_cliente || '',
+        })) : CLIENTES_RFM;
+
+        // Produtos: usar do Supabase se tiver
+        const produtosDB = dbData.produtos.length > 0 ? dbData.produtos.map(p => ({
+          sku: p.sku,
+          nome: p.nome,
+          categoria: p.categoria || 'Outros',
+          qtd: p.quantidade_vendida || 0,
+          receita: parseFloat(p.receita) || 0,
+          markup: parseFloat(p.markup) || 0,
+          fatPercent: parseFloat(p.fat_percentual) || 0,
+          estoque: p.estoque || 0,
+        })).sort((a, b) => b.receita - a.receita) : null;
+
+        // Vendas por estado
+        const estadosDB = dbData.vendasEstado.length > 0 ? dbData.vendasEstado.map(e => ({
+          uf: e.uf,
+          pedidos: e.pedidos || 0,
+          receita: parseFloat(e.receita) || 0,
+          pecas: e.pecas || 0,
+          freteMedio: parseFloat(e.frete_medio) || 0,
+          percent: parseFloat(e.percentual) || 0,
+        })).sort((a, b) => b.receita - a.receita) : null;
+
+        // Vendas por canal
+        const canaisDB = dbData.vendasCanal.length > 0 ? dbData.vendasCanal.map(c => ({
+          canal: c.canal,
+          pedidos: c.pedidos || 0,
+          receita: parseFloat(c.receita) || 0,
+          ticket: parseFloat(c.ticket_medio) || 0,
+          percent: parseFloat(c.percentual) || 0,
+          markup: parseFloat(c.markup) || 0,
+        })).sort((a, b) => b.receita - a.receita) : null;
+
+        return {
+          fonte: 'supabase',
+          clientes: clientesDB,
+          topProdutos: produtosDB || DADOS.topProdutos,
+          regioes: estadosDB || DADOS.regioes,
+          canaisAtuais: canaisDB || DADOS.canais.atuais,
+          totalImportacoes: dbData.importacoes.length,
+          ultimaImportacao: dbData.importacoes.length > 0 ? dbData.importacoes.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))[0] : null,
+        };
+      }, [dbData]);
 
       useEffect(() => {
         document.documentElement.classList.toggle('dark', darkMode);
@@ -3328,6 +3441,18 @@
         { id: 'metas', label: 'Metas 90d', icon: '🎯' },
         { id: 'alertas', label: 'Alertas', icon: '⚠️' }
       ];
+
+      // Loading screen
+      if (loading && isAuthenticated) {
+        return (
+          <div className={`min-h-screen flex items-center justify-center ${darkMode ? 'bg-gray-900' : 'bg-gray-50'}`}>
+            <div className="text-center animate-pulse-slow">
+              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-green-500 to-green-700 flex items-center justify-center text-white text-xl font-bold mx-auto mb-4 shadow-lg">MdO</div>
+              <p className={`text-sm ${darkMode ? 'text-gray-400' : 'text-gray-500'}`}>Carregando dados do Supabase...</p>
+            </div>
+          </div>
+        );
+      }
 
       if (!isAuthenticated) {
         return (
@@ -3381,6 +3506,17 @@
                 <button onClick={() => window.print()} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Exportar / Imprimir">
                   🖨️
                 </button>
+                <button onClick={recarregar} className={`w-8 h-8 rounded-full flex items-center justify-center transition ${darkMode ? 'bg-gray-700 hover:bg-gray-600' : 'bg-gray-100 hover:bg-gray-200'}`} title="Recarregar dados do Supabase">
+                  🔄
+                </button>
+                <span className={`px-2 py-1 rounded-full text-[10px] font-medium ${
+                  dbStatus === 'conectado' ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' :
+                  dbStatus === 'vazio' ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300' :
+                  dbStatus === 'conectando' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300' :
+                  'bg-red-100 text-red-700 dark:bg-red-900 dark:text-red-300'
+                }`} title={`Fonte: ${dadosAtivos.fonte}`}>
+                  {dbStatus === 'conectado' ? '🟢 DB' : dbStatus === 'vazio' ? '🟡 Local' : dbStatus === 'conectando' ? '🔵 ...' : '🔴 Offline'}
+                </span>
               </div>
             </div>
             <div className="max-w-7xl mx-auto px-4 pb-3 no-print">
@@ -3402,7 +3538,7 @@
 
           {/* Main */}
           <main className="max-w-7xl mx-auto px-4 py-6">
-            {activeSection === 'dashboard' && <DashboardSection />}
+            {activeSection === 'dashboard' && <DashboardSection onDataApplied={recarregar} />}
             {activeSection === 'fluxo' && <FluxoCaixaSection />}
             {activeSection === 'clientes' && <AnaliseClientesSection />}
             {activeSection === 'b2c' && <AnaliseB2CSection />}
