@@ -1747,6 +1747,10 @@
       const setPeriodo = (ini, fim) => { setDataIni(ini); setDataFim(fim); };
 
       const [subTab, setSubTab] = useState('perfil');
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalTitle, setModalTitle] = useState('');
+      const [modalContent, setModalContent] = useState(null);
+      const openDetail = (title, content) => { setModalTitle(title); setModalContent(content); setModalOpen(true); };
 
       // Dados derivados B2C
       const clientesB2C = DADOS.topClientes.filter(c => c.tipo === 'B2C');
@@ -1884,7 +1888,23 @@
 
                 <SectionCard title="Concentração Geográfica B2C">
                   {ufArr.length > 0 ? ufArr.map(([uf, data], i) => (
-                    <ProgressBar key={uf} label={`${uf} (${data.qtd} cliente${data.qtd > 1 ? 's' : ''})`} value={data.receita} max={ufArr[0][1].receita} color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'} detail={formatCurrency(data.receita)} showPercent={false} />
+                    <div key={uf} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg px-2 py-1 transition" onClick={() => {
+                      const clientesDoEstado = clientesB2C.filter(c => c.uf === uf);
+                      openDetail(`Clientes B2C em ${uf} (${data.qtd})`, <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Receita Total</p><p className="text-lg font-bold text-green-600">{formatCurrency(data.receita)}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Clientes</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{data.qtd}</p></div>
+                        </div>
+                        {clientesDoEstado.map((c, j) => (
+                          <div key={j} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                            <div><p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.nome}</p><p className="text-xs text-gray-500 dark:text-gray-400">{c.tipo} &bull; {c.pedidos} pedido(s)</p></div>
+                            <span className="text-sm font-bold text-green-600">{formatCurrency(c.valor)}</span>
+                          </div>
+                        ))}
+                      </div>);
+                    }}>
+                      <ProgressBar label={`${uf} (${data.qtd} cliente${data.qtd > 1 ? 's' : ''})`} value={data.receita} max={ufArr[0][1].receita} color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'} detail={formatCurrency(data.receita)} showPercent={false} />
+                    </div>
                   )) : <p className="text-sm text-gray-500">Dados regionais limitados para top clientes B2C</p>}
                   <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-xs text-blue-700 dark:text-blue-400">
@@ -2011,7 +2031,17 @@
                 <div className="grid md:grid-cols-2 gap-6">
                   <div>
                     {Object.entries(categorias).sort((a, b) => b[1].receita - a[1].receita).map(([cat, data], i) => (
-                      <div key={cat} className="mb-4">
+                      <div key={cat} className="mb-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg px-2 py-1 transition" onClick={() => openDetail(`Categoria: ${cat} (${data.itens.length} SKUs)`, <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-3 mb-4">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Receita</p><p className="text-lg font-bold text-green-600">{formatCurrency(data.receita)}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Qtd Vendida</p><p className="text-lg font-bold text-blue-600">{data.qtd}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">SKUs</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{data.itens.length}</p></div>
+                        </div>
+                        <table className="w-full"><thead><tr className="border-b border-gray-200 dark:border-gray-700"><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Produto</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Qtd</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Receita</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Markup</th></tr></thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">{data.itens.sort((a, b) => b.receita - a.receita).map((p, j) => (
+                          <tr key={j}><td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-200">{p.nome}</td><td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.qtd}</td><td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(p.receita)}</td><td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.markup}%</td></tr>
+                        ))}</tbody></table>
+                      </div>)}>
                         <div className="flex justify-between text-sm mb-1">
                           <span className="font-medium text-gray-700 dark:text-gray-300">{cat}</span>
                           <span className="text-gray-600 dark:text-gray-400">{data.itens.length} SKUs &bull; {data.qtd} un.</span>
@@ -2076,8 +2106,19 @@
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {DADOS.topProdutos.filter(p => p.markup >= 78).sort((a, b) => b.receita - a.receita).map((p, i) => (
-                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
-                          <td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-200">{p.nome}</td>
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition" onClick={() => openDetail(`Produto: ${p.nome}`, <div className="space-y-4">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">SKU</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.sku}</p></div>
+                            <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Categoria</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.categoria}</p></div>
+                            <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Qtd Vendida</p><p className="text-lg font-bold text-blue-600">{p.qtd}</p></div>
+                            <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Receita</p><p className="text-lg font-bold text-green-600">{formatCurrency(p.receita)}</p></div>
+                          </div>
+                          <div className="grid grid-cols-2 gap-3">
+                            <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Markup</p><p className="text-lg font-bold text-green-600">{p.markup}%</p></div>
+                            <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">% do Faturamento</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.fatPercent}%</p></div>
+                          </div>
+                        </div>)}>
+                          <td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-200 hover:text-green-600 transition">{p.nome}</td>
                           <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.qtd}</td>
                           <td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(p.receita)}</td>
                           <td className="px-3 py-2 text-right">
@@ -2240,6 +2281,7 @@
               </div>
             </div>
           )}
+          <DetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>{modalContent}</DetailModal>
         </div>
       );
     };
@@ -2253,6 +2295,10 @@
       const setPeriodo = (ini, fim) => { setDataIni(ini); setDataFim(fim); };
 
       const [selectedCanal, setSelectedCanal] = useState(null);
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalTitle, setModalTitle] = useState('');
+      const [modalContent, setModalContent] = useState(null);
+      const openDetail = (title, content) => { setModalTitle(title); setModalContent(content); setModalOpen(true); };
 
       return (
         <div className="space-y-6">
@@ -2331,7 +2377,23 @@
                       <div><p className="text-xs text-gray-500 dark:text-gray-400">Produtos foco</p><p className="text-sm text-gray-700 dark:text-gray-300">{canal.produtos}</p></div>
                       <div><p className="text-xs text-gray-500 dark:text-gray-400">Estratégia sugerida</p><p className="text-sm text-gray-700 dark:text-gray-300">{canal.estrategia}</p></div>
                       {canal.clienteRef && (
-                        <div className="bg-green-50 dark:bg-green-950 rounded p-2"><p className="text-xs text-green-600 dark:text-green-400">Cliente referência: {canal.clienteRef}</p></div>
+                        <div className="bg-green-50 dark:bg-green-950 rounded p-2 cursor-pointer hover:ring-2 hover:ring-green-400 transition" onClick={(e) => {
+                          e.stopPropagation();
+                          const clienteB2B = DADOS.topClientes.find(c => c.tipo === 'B2B' && canal.clienteRef.includes(c.nome.split(' ')[0]));
+                          if (clienteB2B) {
+                            openDetail(`Cliente B2B: ${clienteB2B.nome}`, <ClienteDetalhe cliente={{ nome: clienteB2B.nome, tipo: clienteB2B.tipo, uf: clienteB2B.uf, total_gasto: clienteB2B.valor, ticket_medio: clienteB2B.ticketMedio, total_pedidos: clienteB2B.pedidos, segmento: 'B2B', acao_sugerida: clienteB2B.recompra ? 'Fidelização' : 'Prospecção', loja: clienteB2B.loja || 'Shopify', markup: 0 }} />);
+                          } else {
+                            openDetail(`Canal B2B: ${canal.canal}`, <div className="space-y-3">
+                              <p className="text-sm text-gray-600 dark:text-gray-400">Cliente referência: {canal.clienteRef}</p>
+                              <div className="grid grid-cols-2 gap-3">
+                                <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Ticket Estimado</p><p className="text-lg font-bold text-green-600">{formatCurrency(canal.ticketEst)}</p></div>
+                                <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Frequência</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{canal.freq}</p></div>
+                              </div>
+                              <div><p className="text-xs text-gray-500 dark:text-gray-400">Produtos foco</p><p className="text-sm text-gray-700 dark:text-gray-300">{canal.produtos}</p></div>
+                              <div><p className="text-xs text-gray-500 dark:text-gray-400">Estratégia</p><p className="text-sm text-gray-700 dark:text-gray-300">{canal.estrategia}</p></div>
+                            </div>);
+                          }
+                        }}><p className="text-xs text-green-600 dark:text-green-400">Cliente referência: {canal.clienteRef} <span className="underline ml-1">ver detalhes</span></p></div>
                       )}
                     </div>
                   )}
@@ -2357,6 +2419,7 @@
               </div>
             </div>
           </div>
+          <DetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>{modalContent}</DetailModal>
         </div>
       );
     };
@@ -2370,6 +2433,10 @@
       const setPeriodo = (ini, fim) => { setDataIni(ini); setDataFim(fim); };
 
       const [viewMode, setViewMode] = useState('geral');
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalTitle, setModalTitle] = useState('');
+      const [modalContent, setModalContent] = useState(null);
+      const openDetail = (title, content) => { setModalTitle(title); setModalContent(content); setModalOpen(true); };
 
       const clientesSemAgregado = DADOS.topClientes.filter(c => !c.nome.includes('agregado'));
       const clientesB2B = clientesSemAgregado.filter(c => c.tipo === 'B2B');
@@ -2483,15 +2550,30 @@
 
                 <SectionCard title="Concentração por Estado (Top Clientes)">
                   {ufData.map(([uf, data], i) => (
-                    <ProgressBar
-                      key={uf}
-                      label={`${uf} (${data.qtd} cliente${data.qtd > 1 ? 's' : ''})`}
-                      value={data.receita}
-                      max={ufData[0][1].receita}
-                      color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'}
-                      detail={formatCurrency(data.receita)}
-                      showPercent={false}
-                    />
+                    <div key={uf} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg px-2 py-1 transition" onClick={() => {
+                      const clientesDoEstado = clientesSemAgregado.filter(c => c.uf === uf);
+                      openDetail(`Clientes em ${uf} (${data.qtd})`, <div className="space-y-3">
+                        <div className="grid grid-cols-2 gap-3 mb-4">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Receita Total</p><p className="text-lg font-bold text-green-600">{formatCurrency(data.receita)}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Clientes</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{data.qtd}</p></div>
+                        </div>
+                        {clientesDoEstado.map((c, j) => (
+                          <div key={j} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                            <div><p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.nome}</p><p className="text-xs text-gray-500 dark:text-gray-400">{c.tipo} &bull; {c.pedidos} pedido(s)</p></div>
+                            <span className="text-sm font-bold text-green-600">{formatCurrency(c.valor)}</span>
+                          </div>
+                        ))}
+                      </div>);
+                    }}>
+                      <ProgressBar
+                        label={`${uf} (${data.qtd} cliente${data.qtd > 1 ? 's' : ''})`}
+                        value={data.receita}
+                        max={ufData[0][1].receita}
+                        color={i === 0 ? 'green' : i === 1 ? 'blue' : 'orange'}
+                        detail={formatCurrency(data.receita)}
+                        showPercent={false}
+                      />
+                    </div>
                   ))}
                   <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
                     <p className="text-xs text-gray-500 dark:text-gray-400">
@@ -2537,9 +2619,9 @@
                     </thead>
                     <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
                       {clienteScores.map((c, i) => (
-                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                        <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition" onClick={() => openDetail(`Cliente: ${c.nome}`, <ClienteDetalhe cliente={{ nome: c.nome, tipo: c.tipo, uf: c.uf, total_gasto: c.valor, ticket_medio: c.ticketMedio, total_pedidos: c.pedidos, segmento: c.tier, acao_sugerida: c.recompra ? 'Fidelização' : 'Reativação', loja: c.loja || 'Shopify', markup: 0 }} />)}>
                           <td className="px-3 py-3 text-gray-500 dark:text-gray-400 font-mono">{i + 1}</td>
-                          <td className="px-3 py-3 text-gray-800 dark:text-gray-200 font-medium text-sm">{c.nome}</td>
+                          <td className="px-3 py-3 text-gray-800 dark:text-gray-200 font-medium text-sm hover:text-green-600 transition">{c.nome}</td>
                           <td className="px-3 py-3 text-right text-green-600 dark:text-green-400 font-medium">{formatCurrency(c.valor)}</td>
                           <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{c.pedidos}</td>
                           <td className="px-3 py-3 text-right text-gray-600 dark:text-gray-400">{formatCurrency(c.ticketMedio)}</td>
@@ -2586,7 +2668,7 @@
                 <SectionCard title="Segmento B2B — Alto Potencial">
                   <div className="space-y-4">
                     {clientesB2B.map((c, i) => (
-                      <div key={i} className="border border-blue-100 dark:border-blue-800 rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/50">
+                      <div key={i} className="border border-blue-100 dark:border-blue-800 rounded-lg p-3 bg-blue-50/50 dark:bg-blue-950/50 cursor-pointer hover:ring-2 hover:ring-blue-400 transition" onClick={() => openDetail(`Cliente B2B: ${c.nome}`, <ClienteDetalhe cliente={{ nome: c.nome, tipo: c.tipo, uf: c.uf, total_gasto: c.valor, ticket_medio: c.ticketMedio, total_pedidos: c.pedidos, segmento: 'B2B', acao_sugerida: c.recompra ? 'Fidelização' : 'Prospecção', loja: c.loja || 'Shopify', markup: 0 }} />)}>
                         <div className="flex justify-between items-start">
                           <div>
                             <p className="font-medium text-gray-800 dark:text-gray-200">{c.nome}</p>
@@ -2610,9 +2692,9 @@
                 <SectionCard title="Segmento B2C — Fidelização">
                   <div className="space-y-3">
                     {clientesB2C.slice(0, 5).map((c, i) => (
-                      <div key={i} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
+                      <div key={i} className="flex justify-between items-center py-2 border-b border-gray-100 dark:border-gray-700 last:border-0 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition rounded px-2" onClick={() => openDetail(`Cliente B2C: ${c.nome}`, <ClienteDetalhe cliente={{ nome: c.nome, tipo: c.tipo, uf: c.uf, total_gasto: c.valor, ticket_medio: c.ticketMedio, total_pedidos: c.pedidos, segmento: 'B2C', acao_sugerida: c.recompra ? 'Fidelização' : 'Reativação', loja: c.loja || 'Shopify', markup: 0 }} />)}>
                         <div>
-                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200">{c.nome}</p>
+                          <p className="text-sm font-medium text-gray-800 dark:text-gray-200 hover:text-green-600 transition">{c.nome}</p>
                           <p className="text-xs text-gray-500 dark:text-gray-400">{c.uf || '—'} &bull; {c.pedidos} pedido(s) &bull; {c.produtos} itens</p>
                         </div>
                         <div className="text-right">
@@ -2718,6 +2800,7 @@
               </SectionCard>
             </div>
           )}
+          <DetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>{modalContent}</DetailModal>
         </div>
       );
     };
@@ -4025,6 +4108,10 @@
       const [dataIni, setDataIni] = useState(() => { const d = new Date(); d.setMonth(d.getMonth() - 1); return d.toISOString().split('T')[0]; });
       const [dataFim, setDataFim] = useState(new Date().toISOString().split('T')[0]);
       const setPeriodo = (ini, fim) => { setDataIni(ini); setDataFim(fim); };
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalTitle, setModalTitle] = useState('');
+      const [modalContent, setModalContent] = useState(null);
+      const openDetail = (title, content) => { setModalTitle(title); setModalContent(content); setModalOpen(true); };
 
       return (
         <div className="space-y-6">
@@ -4055,11 +4142,29 @@
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100 dark:divide-gray-700">
-                    {DADOS.topProdutos.map((p, i) => (
-                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750">
+                    {DADOS.topProdutos.map((p, i) => {
+                      const estoqueInfo = DADOS.estoque.topPorValor.find(e => e.sku === p.sku);
+                      return (
+                      <tr key={i} className="hover:bg-gray-50 dark:hover:bg-gray-750 cursor-pointer transition" onClick={() => openDetail(`Produto: ${p.nome}`, <div className="space-y-4">
+                        <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">SKU</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.sku}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Categoria</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.categoria}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Qtd Vendida</p><p className="text-lg font-bold text-blue-600">{p.qtd}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Receita</p><p className="text-lg font-bold text-green-600">{formatCurrency(p.receita)}</p></div>
+                        </div>
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Markup</p><p className="text-lg font-bold text-green-600">{p.markup}%</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">% do Faturamento</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{p.fatPercent}%</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Estoque</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{estoqueInfo ? `${estoqueInfo.estoque} un.` : '—'}</p></div>
+                        </div>
+                        {estoqueInfo && <div className="grid grid-cols-2 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Valor Estoque (custo)</p><p className="text-lg font-bold text-orange-600">{formatCurrency(estoqueInfo.custo * estoqueInfo.estoque)}</p></div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Valor Estoque (venda)</p><p className="text-lg font-bold text-green-600">{formatCurrency(estoqueInfo.totalValor)}</p></div>
+                        </div>}
+                      </div>)}>
                         <td className="px-3 py-2 text-gray-400 font-mono text-sm">{i + 1}</td>
                         <td className="px-3 py-2 font-mono text-sm text-gray-600 dark:text-gray-400">{p.sku}</td>
-                        <td className="px-3 py-2 text-gray-800 dark:text-gray-200 text-sm">{p.nome}</td>
+                        <td className="px-3 py-2 text-gray-800 dark:text-gray-200 text-sm hover:text-green-600 transition">{p.nome}</td>
                         <td className="px-3 py-2 text-xs"><span className="px-2 py-0.5 rounded bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">{p.categoria}</span></td>
                         <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.qtd}</td>
                         <td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(p.receita)}</td>
@@ -4067,7 +4172,8 @@
                           <span className={`px-2 py-0.5 rounded text-xs font-medium ${p.markup >= 90 ? 'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{p.markup}%</span>
                         </td>
                       </tr>
-                    ))}
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>
@@ -4081,9 +4187,28 @@
             <SectionCard>
               <div className="grid md:grid-cols-2 gap-6">
                 <div>
-                  {DADOS.categorias.map((cat, i) => (
-                    <ProgressBar key={cat.nome} label={`${cat.nome} (${cat.produtos} SKUs)`} value={cat.receita} max={DADOS.categorias[0].receita} color={i === 0 ? 'green' : i === 1 ? 'blue' : i === 2 ? 'purple' : 'orange'} detail={`${formatCurrency(cat.receita)} (${cat.percentual}%)`} showPercent={false} />
-                  ))}
+                  {DADOS.categorias.map((cat, i) => {
+                    const produtosDaCat = DADOS.topProdutos.filter(p => p.categoria === cat.nome);
+                    return (
+                    <div key={cat.nome} className="cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 rounded-lg px-2 py-1 transition" onClick={() => openDetail(`Categoria: ${cat.nome}`, <div className="space-y-3">
+                      <div className="grid grid-cols-3 gap-3 mb-4">
+                        <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Receita</p><p className="text-lg font-bold text-green-600">{formatCurrency(cat.receita)}</p></div>
+                        <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">Qtd Vendida</p><p className="text-lg font-bold text-blue-600">{cat.qtdVendida}</p></div>
+                        <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3"><p className="text-[10px] text-gray-500 dark:text-gray-400">SKUs</p><p className="text-lg font-bold text-gray-800 dark:text-gray-200">{cat.produtos}</p></div>
+                      </div>
+                      <p className="text-xs text-gray-500 dark:text-gray-400">{cat.percentual}% do faturamento total</p>
+                      {produtosDaCat.length > 0 && <div>
+                        <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mb-2">Top Produtos nesta Categoria</p>
+                        <table className="w-full"><thead><tr className="border-b border-gray-200 dark:border-gray-700"><th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400">Produto</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Qtd</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Receita</th><th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400">Markup</th></tr></thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-700">{produtosDaCat.sort((a, b) => b.receita - a.receita).map((p, j) => (
+                          <tr key={j}><td className="px-3 py-2 text-sm text-gray-800 dark:text-gray-200">{p.nome}</td><td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.qtd}</td><td className="px-3 py-2 text-right font-medium text-green-600 dark:text-green-400">{formatCurrency(p.receita)}</td><td className="px-3 py-2 text-right text-gray-600 dark:text-gray-400">{p.markup}%</td></tr>
+                        ))}</tbody></table>
+                      </div>}
+                    </div>)}>
+                      <ProgressBar label={`${cat.nome} (${cat.produtos} SKUs)`} value={cat.receita} max={DADOS.categorias[0].receita} color={i === 0 ? 'green' : i === 1 ? 'blue' : i === 2 ? 'purple' : 'orange'} detail={`${formatCurrency(cat.receita)} (${cat.percentual}%)`} showPercent={false} />
+                    </div>
+                    );
+                  })}
                 </div>
                 <div className="flex items-center justify-center">
                   <PieChart data={DADOS.categorias.slice(0, 7).map(c => ({ canal: c.nome, percent: c.percentual }))} size={130} />
@@ -4161,6 +4286,7 @@
               </div>
             </SectionCard>
           </div>
+          <DetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>{modalContent}</DetailModal>
         </div>
       );
     };
@@ -4181,17 +4307,24 @@
       const [modalTitle, setModalTitle] = useState('');
       const [modalContent, setModalContent] = useState(null);
 
+      const [dashData, setDashData] = useState(null);
+
       const carregarDados = useCallback(async () => {
         setLoading(true);
         try {
-          const [pedRes, cliRes, prodRes] = await Promise.all([
-            supabase.from('shopify_pedidos').select('*').gte('data', dataIni + 'T00:00:00').lte('data', dataFim + 'T23:59:59').order('data', { ascending: false }).limit(10000),
-            supabase.from('shopify_clientes').select('*').order('total_gasto', { ascending: false }).limit(5000),
-            supabase.from('shopify_produtos').select('*').limit(6000)
-          ]);
-          setPedidos(pedRes.data || []);
-          setClientes(cliRes.data || []);
-          setProdutos(prodRes.data || []);
+          // RPC otimizada - retorna tudo filtrado pelo banco
+          const { data: rpcData } = await supabase.rpc('shopify_dashboard_periodo', { data_ini: dataIni, data_fim: dataFim });
+          if (rpcData) setDashData(rpcData);
+
+          // Pedidos recentes (últimos 20 do período)
+          const { data: pedData } = await supabase.from('shopify_pedidos').select('*')
+            .gte('data', dataIni + 'T00:00:00').lte('data', dataFim + 'T23:59:59')
+            .order('data', { ascending: false }).limit(20);
+          setPedidos(pedData || []);
+
+          // Produtos (não filtrados por data)
+          const { data: prodData } = await supabase.from('shopify_produtos').select('*').limit(1000);
+          setProdutos(prodData || []);
         } catch (e) { console.error('Erro Shopify:', e); }
         setLoading(false);
       }, [dataIni, dataFim]);
@@ -4201,13 +4334,27 @@
       const setPeriodo = (di, df) => { setDataIni(di); setDataFim(df); };
 
       const kpis = useMemo(() => {
-        const totalPedidos = pedidos.length;
-        const receita = pedidos.reduce((s, p) => s + (parseFloat(p.valor_total) || 0), 0);
-        const ticketMedio = totalPedidos > 0 ? receita / totalPedidos : 0;
-        return { totalPedidos, receita, totalClientes: clientes.length, totalProdutos: produtos.length, ticketMedio };
-      }, [pedidos, clientes, produtos]);
+        if (!dashData) return { totalPedidos: 0, receita: 0, totalClientes: 0, totalProdutos: produtos.length, ticketMedio: 0 };
+        return {
+          totalPedidos: dashData.pedidos || 0,
+          receita: parseFloat(dashData.receita) || 0,
+          totalClientes: dashData.clientes || 0,
+          totalProdutos: produtos.length,
+          ticketMedio: parseFloat(dashData.ticket_medio) || 0
+        };
+      }, [dashData, produtos]);
 
-      const top10Clientes = useMemo(() => clientes.slice(0, 10), [clientes]);
+      const top10Clientes = useMemo(() => {
+        if (!dashData?.top_clientes) return [];
+        return dashData.top_clientes.slice(0, 10).map(c => ({
+          nome: c.cliente_nome,
+          email: c.cliente_email,
+          total_pedidos: c.pedidos,
+          total_gasto: parseFloat(c.total_gasto),
+          ticket_medio: parseFloat(c.ticket_medio),
+          uf: c.uf
+        }));
+      }, [dashData]);
 
       const top10Produtos = useMemo(() => {
         return produtos.slice(0, 10).map(p => {
@@ -4375,6 +4522,43 @@
               </div>
             )}
           </SectionCard>
+
+          {/* Vendas por Estado (clicável) */}
+          {dashData?.por_estado && (
+            <SectionCard title={`Vendas por Estado (${dataIni} a ${dataFim})`}>
+              <div className="grid grid-cols-3 sm:grid-cols-5 gap-2">
+                {dashData.por_estado.map(e => (
+                  <div key={e.uf} onClick={() => {
+                    setModalTitle(`Clientes - ${e.uf}`);
+                    setModalContent(
+                      <div className="space-y-3">
+                        <div className="grid grid-cols-3 gap-3">
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 text-center">
+                            <p className="text-[10px] text-gray-500">Pedidos</p>
+                            <p className="text-xl font-bold text-gray-800 dark:text-gray-200">{e.pedidos}</p>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 text-center">
+                            <p className="text-[10px] text-gray-500">Clientes</p>
+                            <p className="text-xl font-bold text-blue-600">{e.clientes}</p>
+                          </div>
+                          <div className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 text-center">
+                            <p className="text-[10px] text-gray-500">Receita</p>
+                            <p className="text-xl font-bold text-green-600">{formatCurrency(e.receita)}</p>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-400">Ticket médio: {formatCurrency(e.receita / e.pedidos)}</p>
+                      </div>
+                    );
+                    setModalOpen(true);
+                  }} className="bg-gray-50 dark:bg-gray-750 rounded-lg p-3 text-center cursor-pointer hover:bg-green-50 dark:hover:bg-green-900 transition hover:shadow-md">
+                    <p className="text-lg font-bold text-gray-800 dark:text-gray-200">{e.uf}</p>
+                    <p className="text-xs text-green-600 font-medium">{formatCurrency(e.receita)}</p>
+                    <p className="text-[10px] text-gray-400">{e.pedidos} pedidos</p>
+                  </div>
+                ))}
+              </div>
+            </SectionCard>
+          )}
 
           <div className="grid md:grid-cols-2 gap-4">
             {/* Top 10 Clientes */}
