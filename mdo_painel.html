@@ -28,6 +28,7 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <script src="https://unpkg.com/papaparse@5/papaparse.min.js"></script>
   <script src="https://unpkg.com/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js"></script>
   <style>
     * { -webkit-font-smoothing: antialiased; }
     .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -39,6 +40,51 @@
   <div id="root"></div>
   <script type="text/babel">
     const { useState, useMemo, useEffect, useCallback } = React;
+
+    // ==========================================
+    // SUPABASE — CONEXÃO
+    // ==========================================
+    const SUPABASE_URL = 'https://sskcyftrgohcttghacoz.supabase.co';
+    const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNza2N5ZnRyZ29oY3R0Z2hhY296Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQxMzQ1MTIsImV4cCI6MjA4OTcxMDUxMn0.70NyFgxG_gKWegpW5A9dUsYKLeTjPyzfdn9i1MIDfTI';
+    const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    // Funções helper para Supabase
+    const db = {
+      // Ler tabela inteira
+      async getAll(table) {
+        const { data, error } = await supabase.from(table).select('*');
+        if (error) { console.error(`Erro ao ler ${table}:`, error); return []; }
+        return data || [];
+      },
+      // Inserir dados
+      async insert(table, rows) {
+        const { data, error } = await supabase.from(table).insert(rows).select();
+        if (error) { console.error(`Erro ao inserir em ${table}:`, error); return null; }
+        return data;
+      },
+      // Upsert (insert or update)
+      async upsert(table, rows, onConflict) {
+        const { data, error } = await supabase.from(table).upsert(rows, { onConflict }).select();
+        if (error) { console.error(`Erro ao upsert em ${table}:`, error); return null; }
+        return data;
+      },
+      // Deletar tudo de uma tabela (para reimportar)
+      async clearTable(table) {
+        const { error } = await supabase.from(table).delete().neq('id', 0);
+        if (error) console.error(`Erro ao limpar ${table}:`, error);
+      },
+      // Registrar importação
+      async logImport(nomeArquivo, tipoDetectado, totalLinhas, totalColunas, confianca) {
+        return await db.insert('importacoes', [{
+          nome_arquivo: nomeArquivo,
+          tipo_detectado: tipoDetectado,
+          total_linhas: totalLinhas,
+          total_colunas: totalColunas,
+          confianca,
+          dados_aplicados: true
+        }]);
+      }
+    };
 
     // ==========================================
     // DADOS CONSOLIDADOS (COMPLETO)
@@ -2628,6 +2674,7 @@
             totalLinhas: dados.length,
             totalColunas: colunas.length,
             colunas,
+            dados: dados,
             amostra: dados.slice(0, 8),
             erros,
             abas,
@@ -2658,9 +2705,113 @@
         e.target.value = '';
       };
 
-      const aplicarDados = (arqId) => {
-        setArquivos(prev => prev.map(a => a.id === arqId ? { ...a, aplicado: true, status: 'aplicado' } : a));
-        setHistorico(prev => [...prev, { data: new Date().toLocaleString('pt-BR'), arquivo: arquivos.find(a => a.id === arqId)?.nomeArquivo, tipo: arquivos.find(a => a.id === arqId)?.tipoDetectado?.label, linhas: arquivos.find(a => a.id === arqId)?.totalLinhas }]);
+      const aplicarDados = async (arqId) => {
+        const arq = arquivos.find(a => a.id === arqId);
+        if (!arq) return;
+        setProcessando(true);
+
+        try {
+          const tipo = arq.tipoDetectado?.tipo;
+          const dados = arq.amostra.length < arq.totalLinhas ? arq.dados || arq.amostra : arq.amostra;
+          const allData = arq.dados || arq.amostra;
+          const mapa = arq.tipoDetectado?.mapeamento || {};
+
+          const parseMoney = (v) => {
+            if (v == null) return 0;
+            const s = String(v).replace(/R\$|\s|\xa0/g, '').replace(/\./g, '').replace(',', '.').trim();
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+          };
+          const parsePercent = (v) => {
+            if (v == null) return 0;
+            const s = String(v).replace('%', '').replace(',', '.').trim();
+            const n = parseFloat(s);
+            return isNaN(n) ? 0 : n;
+          };
+
+          if (tipo === 'bling_clientes') {
+            const rows = allData.map(r => ({
+              nome: r[mapa.nome] || r['Nome'] || '',
+              loja: r[mapa.loja] || r['Loja'] || 'Shopify',
+              total_pedidos: parseInt(r[mapa.produtos] || r['Produtos'] || 0),
+              total_gasto: parseMoney(r[mapa.valor] || r['Valor']),
+              markup: parsePercent(r[mapa.markup] || r['Markup']),
+              lucro: parseMoney(r[mapa.lucro] || r['Lucro Venda']),
+              celular: r[mapa.telefone] || r['Celular'] || null,
+              tipo: 'B2C',
+              fonte: 'bling_import'
+            })).filter(r => r.nome && r.nome !== 'Totais' && r.nome !== 'Total');
+            if (rows.length > 0) {
+              await db.insert('clientes', rows);
+            }
+          } else if (tipo === 'bling_vendas_estado') {
+            const rows = allData.map(r => ({
+              periodo: 'IMPORTADO',
+              uf: r[mapa.estado] || r['Estado'] || '',
+              pedidos: parseInt(r[mapa.pedidos] || r['Pedidos'] || 0),
+              receita: parseMoney(r[mapa.valor] || r['Valor']),
+              pecas: parseInt(r[mapa.pecas] || r['Pecas'] || 0),
+              frete_medio: parseMoney(r[mapa.freteMedio] || r['Frete Médio'] || r['Frete Medio']),
+              ticket_medio: parseMoney(r[mapa.ticketMedio] || r['Ticket Médio'] || r['Ticket Medio']),
+              fonte: 'bling_import'
+            })).filter(r => r.uf && r.uf !== 'Total' && r.uf !== 'Totais');
+            if (rows.length > 0) {
+              await db.insert('vendas_estado', rows);
+            }
+          } else if (tipo === 'bling_vendas_loja') {
+            const rows = allData.map(r => ({
+              periodo: 'IMPORTADO',
+              canal: r[mapa.loja] || r['Loja'] || '',
+              pedidos: parseInt(r[mapa.pedidos] || r['Pedidos'] || 0),
+              receita: parseMoney(r[mapa.valor] || r['Valor']),
+              ticket_medio: parseMoney(r[mapa.ticketMedio] || r['Ticket Médio'] || r['Ticket Medio']),
+              markup: parsePercent(r[mapa.markup] || r['Markup']),
+              contribuicao: parseMoney(r[mapa.contribuicao] || r['$ Contribuição'] || r['$ Contribuicao']),
+              fonte: 'bling_import'
+            })).filter(r => r.canal && r.canal !== 'Total' && r.canal !== 'Totais');
+            if (rows.length > 0) {
+              await db.insert('vendas_canal', rows);
+            }
+          } else if (tipo === 'bling_produtos' || tipo === 'bling_curva_abc' || tipo === 'bling_estoque') {
+            const rows = allData.map(r => ({
+              sku: String(r[mapa.sku] || r['Codigo'] || r['Código'] || '').trim(),
+              nome: r[mapa.nome] || r['Descricao'] || r['Descrição'] || '',
+              quantidade_vendida: parseInt(r[mapa.quantidade] || r['Quantidade'] || 0),
+              receita: parseMoney(r[mapa.valor] || r['Valor']),
+              markup: parsePercent(r[mapa.markup] || r['Markup']),
+              custo: parseMoney(r[mapa.custo] || r['Custo']),
+              preco_venda: parseMoney(r[mapa.valor] || r['Valor']),
+              estoque: parseInt(r[mapa.estoque] || r['Estoque'] || 0),
+              fat_percentual: parsePercent(r[mapa.faturamento] || r['% Faturamento']),
+              fonte: 'bling_import'
+            })).filter(r => r.sku && r.nome && r.nome !== 'Total');
+            if (rows.length > 0) {
+              await db.upsert('produtos', rows, 'sku');
+            }
+          } else if (tipo === 'bling_financeiro') {
+            const rows = allData.map(r => ({
+              periodo: 'IMPORTADO',
+              categoria: r[mapa.categoria] || 'Outros',
+              item: r[mapa.descricao] || r['Descricao'] || r['Descrição'] || '',
+              valor: parseMoney(r[mapa.valor] || r['Valor']),
+              tipo: 'variavel',
+              fonte: 'bling_import'
+            })).filter(r => r.item && r.item !== 'Total');
+            if (rows.length > 0) {
+              await db.insert('custos', rows);
+            }
+          }
+
+          // Log da importação
+          await db.logImport(arq.nomeArquivo, arq.tipoDetectado?.label || 'desconhecido', arq.totalLinhas, arq.totalColunas, arq.tipoDetectado?.confianca || 0);
+
+          setArquivos(prev => prev.map(a => a.id === arqId ? { ...a, aplicado: true, status: 'aplicado' } : a));
+          setHistorico(prev => [...prev, { data: new Date().toLocaleString('pt-BR'), arquivo: arq.nomeArquivo, tipo: arq.tipoDetectado?.label, linhas: arq.totalLinhas }]);
+        } catch (err) {
+          console.error('Erro ao aplicar dados:', err);
+          alert('Erro ao salvar no Supabase: ' + err.message);
+        }
+        setProcessando(false);
       };
 
       const removerArquivo = (arqId) => {
