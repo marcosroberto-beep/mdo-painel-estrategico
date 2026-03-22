@@ -1307,7 +1307,7 @@
           try {
             const [resumoRes, clientesRes] = await Promise.all([
               supabase.rpc('shopify_rfm_resumo'),
-              supabase.rpc('shopify_rfm_matrix')
+              supabase.rpc('shopify_rfm_top_clientes')
             ]);
             setShopifyRFM({
               resumo: resumoRes.data || [],
@@ -1374,8 +1374,12 @@
         return 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400';
       };
 
-      const totalClientes = clientesRFM.length;
-      const receitaTotal = clientesRFM.reduce((s, c) => s + (c.totalGasto || 0), 0);
+      const totalClientes = fonteAtiva === 'shopify' && shopifyRFM.resumo.length > 0
+        ? shopifyRFM.resumo.reduce((s, r) => s + parseInt(r.total_clientes), 0)
+        : clientesRFM.length;
+      const receitaTotal = fonteAtiva === 'shopify' && shopifyRFM.resumo.length > 0
+        ? shopifyRFM.resumo.reduce((s, r) => s + parseFloat(r.receita_total), 0)
+        : clientesRFM.reduce((s, c) => s + (c.totalGasto || 0), 0);
 
       // Loading state para Shopify
       if (fonteAtiva === 'shopify' && shopifyRFM.loading) {
