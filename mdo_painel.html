@@ -1340,27 +1340,77 @@
         return calcularRFM(CLIENTES_RFM);
       }, [fonteAtiva, shopifyRFM.clientes]);
 
-      // Agrupar por segmento
+      // Agrupar por segmento — usar resumo real do Shopify quando disponível
       const segmentos = useMemo(() => {
         const groups = {};
+        const segIcons = { 'Campeoes': '🏆', 'Leais': '💎', 'Novos Promissores': '🌟', 'Potenciais Leais': '👤', 'Precisam Atencao': '👀', 'Em Risco': '⚠️', 'Quase Perdidos': '📉', 'Nao Pode Perder': '🚨', 'Hibernando': '💤', 'Perdidos': '💀' };
+        const segCores = { 'Campeoes': 'green', 'Leais': 'emerald', 'Novos Promissores': 'blue', 'Potenciais Leais': 'cyan', 'Precisam Atencao': 'slate', 'Em Risco': 'orange', 'Quase Perdidos': 'yellow', 'Nao Pode Perder': 'red', 'Hibernando': 'amber', 'Perdidos': 'gray' };
+
+        // Primeiro agrupar os clientes que temos (top 50 por segmento)
         clientesRFM.forEach(c => {
-          if (!groups[c.segmento]) groups[c.segmento] = { clientes: [], segCor: c.segCor, segIcon: c.segIcon };
+          if (!groups[c.segmento]) groups[c.segmento] = { clientes: [], segCor: segCores[c.segmento] || c.segCor || 'gray', segIcon: segIcons[c.segmento] || c.segIcon || '👤', totalReal: 0, receitaReal: 0, ticketReal: 0 };
           groups[c.segmento].clientes.push(c);
         });
-        return groups;
-      }, [clientesRFM]);
 
-      // Dados para a matriz visual 5x5
+        // Se Shopify ativo, sobrescrever totais com dados reais do resumo
+        if (fonteAtiva === 'shopify' && shopifyRFM.resumo.length > 0) {
+          shopifyRFM.resumo.forEach(r => {
+            if (!groups[r.segmento]) groups[r.segmento] = { clientes: [], segCor: segCores[r.segmento] || 'gray', segIcon: segIcons[r.segmento] || '👤', totalReal: 0, receitaReal: 0, ticketReal: 0 };
+            groups[r.segmento].totalReal = parseInt(r.total_clientes);
+            groups[r.segmento].receitaReal = parseFloat(r.receita_total);
+            groups[r.segmento].ticketReal = parseFloat(r.ticket_medio);
+          });
+        }
+
+        return groups;
+      }, [clientesRFM, fonteAtiva, shopifyRFM.resumo]);
+
+      // Dados para a matriz visual 5x5 — usar totais reais para Shopify
       const matrizCells = useMemo(() => {
         const cells = [];
-        for (let r = 5; r >= 1; r--) {
-          for (let f = 1; f <= 5; f++) {
-            const clientesCell = clientesRFM.filter(c => c.rScore === r && c.fScore === f);
-            cells.push({ r, f, count: clientesCell.length, clientes: clientesCell });
+        if (fonteAtiva === 'shopify' && shopifyRFM.resumo.length > 0) {
+          // Mapear segmentos para posições R x F aproximadas
+          const segMap = {
+            'Campeoes': [{r:5,f:5},{r:5,f:4},{r:4,f:5},{r:4,f:4}],
+            'Leais': [{r:5,f:3},{r:4,f:3}],
+            'Novos Promissores': [{r:5,f:1},{r:5,f:2},{r:4,f:1},{r:4,f:2}],
+            'Potenciais Leais': [{r:3,f:3},{r:3,f:4},{r:3,f:5}],
+            'Precisam Atencao': [{r:3,f:1},{r:3,f:2}],
+            'Em Risco': [{r:2,f:3},{r:2,f:4},{r:2,f:5}],
+            'Quase Perdidos': [{r:2,f:1},{r:2,f:2}],
+            'Nao Pode Perder': [{r:1,f:4},{r:1,f:5}],
+            'Hibernando': [{r:1,f:2},{r:1,f:3}],
+            'Perdidos': [{r:1,f:1}]
+          };
+          // Distribuir contagem dos segmentos pelas células
+          const cellMap = {};
+          for (let r = 1; r <= 5; r++) for (let f = 1; f <= 5; f++) cellMap[`${r}-${f}`] = { r, f, count: 0, clientes: [] };
+
+          Object.entries(segMap).forEach(([seg, positions]) => {
+            const total = segmentos[seg]?.totalReal || segmentos[seg]?.clientes?.length || 0;
+            const perCell = Math.ceil(total / positions.length);
+            positions.forEach((pos, i) => {
+              const key = `${pos.r}-${pos.f}`;
+              cellMap[key].count += (i === positions.length - 1) ? (total - perCell * i) : perCell;
+              if (segmentos[seg]?.clientes) {
+                const start = i * Math.ceil(segmentos[seg].clientes.length / positions.length);
+                const end = start + Math.ceil(segmentos[seg].clientes.length / positions.length);
+                cellMap[key].clientes.push(...segmentos[seg].clientes.slice(start, end));
+              }
+            });
+          });
+
+          for (let r = 5; r >= 1; r--) for (let f = 1; f <= 5; f++) cells.push(cellMap[`${r}-${f}`]);
+        } else {
+          for (let r = 5; r >= 1; r--) {
+            for (let f = 1; f <= 5; f++) {
+              const clientesCell = clientesRFM.filter(c => c.rScore === r && c.fScore === f);
+              cells.push({ r, f, count: clientesCell.length, clientes: clientesCell });
+            }
           }
         }
         return cells;
-      }, [clientesRFM]);
+      }, [clientesRFM, fonteAtiva, shopifyRFM.resumo, segmentos]);
 
       const getMatrizCellColor = (r, f) => {
         if (r >= 4 && f >= 4) return 'bg-emerald-500 text-white';
@@ -1432,8 +1482,8 @@
                   <span>{data.segIcon}</span>
                   <span className="text-xs font-semibold text-gray-800 dark:text-gray-200">{seg}</span>
                 </div>
-                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{data.clientes.length}</p>
-                <p className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(data.clientes.reduce((s, c) => s + c.totalGasto, 0))}</p>
+                <p className="text-xl font-bold text-gray-800 dark:text-gray-100">{data.totalReal || data.clientes.length}</p>
+                <p className="text-xs text-gray-500 dark:text-gray-400">{formatCurrency(data.receitaReal || data.clientes.reduce((s, c) => s + c.totalGasto, 0))}</p>
               </div>
             ))}
           </div>
@@ -1504,7 +1554,7 @@
                         selectedSegmento === seg ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300 ring-1 ring-indigo-300' : 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-200'
                       }`}>
                       <span>{data.segIcon}</span>
-                      <span>{seg} ({data.clientes.length})</span>
+                      <span>{seg} ({data.totalReal || data.clientes.length})</span>
                     </button>
                   ))}
                 </div>
@@ -1633,7 +1683,8 @@
               }).map(([seg, data]) => {
                 const isOpen = selectedSegmento === seg;
                 const cohortAcao = COHORT_ACOES[seg];
-                const receitaSeg = data.clientes.reduce((s, c) => s + c.totalGasto, 0);
+                const receitaSeg = data.receitaReal || data.clientes.reduce((s, c) => s + c.totalGasto, 0);
+                const totalSeg = data.totalReal || data.clientes.length;
                 return (
                   <div key={seg} className="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 overflow-hidden">
                     <div className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-750 transition" onClick={() => setSelectedSegmento(isOpen ? null : seg)}>
@@ -1641,7 +1692,7 @@
                         <span className="text-2xl">{data.segIcon}</span>
                         <div>
                           <h3 className="font-semibold text-gray-800 dark:text-gray-200">{seg}</h3>
-                          <p className="text-xs text-gray-500 dark:text-gray-400">{data.clientes.length} clientes &bull; {formatCurrency(receitaSeg)} &bull; {(receitaSeg / receitaTotal * 100).toFixed(1)}% da receita</p>
+                          <p className="text-xs text-gray-500 dark:text-gray-400">{totalSeg.toLocaleString('pt-BR')} clientes &bull; {formatCurrency(receitaSeg)} &bull; {(receitaSeg / receitaTotal * 100).toFixed(1)}% da receita</p>
                         </div>
                       </div>
                       <div className="flex items-center gap-3">
