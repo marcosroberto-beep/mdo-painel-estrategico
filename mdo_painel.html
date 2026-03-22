@@ -765,6 +765,8 @@
     const DashboardSection = ({ onDataApplied, isAdmin }) => {
       const [showImportar, setShowImportar] = useState(false);
       const [syncStatus, setSyncStatus] = useState(null); // null, 'sincronizando', 'sucesso', 'erro'
+      const [shopifySyncStatus, setShopifySyncStatus] = useState(null);
+      const [shopifySyncResult, setShopifySyncResult] = useState(null);
       const [syncResult, setSyncResult] = useState(null);
       const receitaSpark = [null, null, 70923.25, 43890.65].filter(v => v !== null);
       const pedidosSpark = [null, null, 370, 264].filter(v => v !== null);
@@ -779,7 +781,7 @@
               <p className="text-sm text-blue-700 dark:text-blue-400">Modo visualização — contate o administrador para importar dados ou sincronizar.</p>
             </div>
           )}
-          {isAdmin && (<div className="grid md:grid-cols-2 gap-4 animate-fade-in">
+          {isAdmin && (<div className="grid md:grid-cols-3 gap-4 animate-fade-in">
             {/* Conectar Bling */}
             <div className="bg-gradient-to-r from-green-500 to-emerald-600 rounded-2xl p-[2px]">
               <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 h-full">
@@ -818,6 +820,46 @@
                   <div className="mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-lg text-xs text-red-700 dark:text-red-400">
                     Erro na sincronização. Verifique se o Bling está conectado.
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* Conectar Shopify */}
+            <div className="bg-gradient-to-r from-[#96bf48] to-[#5e8e3e] rounded-2xl p-[2px]">
+              <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 h-full">
+                <div className="flex items-center gap-3 mb-3">
+                  <div className="w-10 h-10 rounded-xl bg-lime-100 dark:bg-lime-900 flex items-center justify-center text-xl">🛍️</div>
+                  <div>
+                    <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm">Shopify</h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">Pedidos, clientes, produtos</p>
+                  </div>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <button onClick={() => { window.open(`https://mundo-dos-oleos.myshopify.com/admin/oauth/authorize?client_id=1c7666d7b6a13c80ff62c7a5ec037159&scope=read_orders,read_products,read_customers,read_inventory,read_checkouts&redirect_uri=${SUPABASE_URL}/functions/v1/shopify-callback`, '_blank', 'width=600,height=700'); }}
+                    className="px-3 py-2 bg-[#5e8e3e] text-white rounded-lg text-xs font-medium hover:bg-[#4a7030] transition">
+                    Conectar
+                  </button>
+                  <button onClick={async () => {
+                    setShopifySyncStatus('sincronizando');
+                    try {
+                      const res = await fetch(`${SUPABASE_URL}/functions/v1/shopify-sync?tipo=all`);
+                      const data = await res.json();
+                      setShopifySyncStatus(data.status === 'ok' ? 'sucesso' : 'erro');
+                      setShopifySyncResult(data);
+                      if (onDataApplied) onDataApplied();
+                    } catch (e) { setShopifySyncStatus('erro'); }
+                  }}
+                    className="px-3 py-2 bg-lime-100 text-lime-700 dark:bg-lime-900 dark:text-lime-300 rounded-lg text-xs font-medium hover:bg-lime-200 transition">
+                    {shopifySyncStatus === 'sincronizando' ? '⏳ Sync...' : '🔄 Sincronizar'}
+                  </button>
+                </div>
+                {shopifySyncStatus === 'sucesso' && shopifySyncResult && (
+                  <div className="mt-2 p-2 bg-lime-50 dark:bg-lime-950 rounded-lg text-xs text-lime-700 dark:text-lime-400 animate-fade-in">
+                    {Object.entries(shopifySyncResult.sincronizados || {}).map(([k, v]) => `${k}: ${v}`).join(' | ')}
+                  </div>
+                )}
+                {shopifySyncStatus === 'erro' && (
+                  <div className="mt-2 p-2 bg-red-50 dark:bg-red-950 rounded-lg text-xs text-red-700">Erro ao sincronizar Shopify</div>
                 )}
               </div>
             </div>
