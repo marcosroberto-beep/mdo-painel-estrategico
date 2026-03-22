@@ -1292,8 +1292,53 @@
       const [selectedSegmento, setSelectedSegmento] = useState(null);
       const [selectedCliente, setSelectedCliente] = useState(null);
       const [viewMode, setViewMode] = useState('matriz');
+      const [shopifyRFM, setShopifyRFM] = useState({ resumo: [], clientes: [], loading: true });
+      const [modalOpen, setModalOpen] = useState(false);
+      const [modalTitle, setModalTitle] = useState('');
+      const [modalContent, setModalContent] = useState(null);
 
-      const clientesRFM = useMemo(() => calcularRFM(CLIENTES_RFM), []);
+      const openDetail = (title, content) => { setModalTitle(title); setModalContent(content); setModalOpen(true); };
+
+      // Carregar RFM do Shopify via Supabase RPC
+      useEffect(() => {
+        if (fonteAtiva !== 'shopify') return;
+        const load = async () => {
+          setShopifyRFM(p => ({ ...p, loading: true }));
+          try {
+            const [resumoRes, clientesRes] = await Promise.all([
+              supabase.rpc('shopify_rfm_resumo'),
+              supabase.rpc('shopify_rfm_matrix')
+            ]);
+            setShopifyRFM({
+              resumo: resumoRes.data || [],
+              clientes: (clientesRes.data || []).map(c => ({
+                ...c,
+                totalGasto: parseFloat(c.monetary) || 0,
+                ticketMedio: parseFloat(c.ticket_medio) || 0,
+                totalPedidos: c.frequency,
+                diasDesdeUltima: c.recency_days,
+                rScore: c.r_score,
+                fScore: c.f_score,
+                mScore: c.m_score,
+                segCor: c.segmento === 'Campeoes' ? 'green' : c.segmento === 'Leais' ? 'emerald' : c.segmento === 'Novos Promissores' ? 'blue' : c.segmento === 'Potenciais Leais' ? 'cyan' : c.segmento === 'Em Risco' ? 'orange' : c.segmento === 'Nao Pode Perder' ? 'red' : c.segmento === 'Hibernando' ? 'amber' : 'gray',
+                segIcon: c.segmento === 'Campeoes' ? '🏆' : c.segmento === 'Leais' ? '💎' : c.segmento === 'Novos Promissores' ? '🌟' : c.segmento === 'Em Risco' ? '⚠️' : c.segmento === 'Nao Pode Perder' ? '🚨' : c.segmento === 'Hibernando' ? '💤' : c.segmento === 'Perdidos' ? '💀' : '👤',
+                acaoSugerida: c.segmento === 'Campeoes' ? 'Programa VIP, preview de lançamentos' : c.segmento === 'Leais' ? 'Cross-sell, programa de fidelidade' : c.segmento === 'Novos Promissores' ? 'Onboarding personalizado, 2a compra' : c.segmento === 'Em Risco' ? 'Campanha de reativação urgente' : c.segmento === 'Nao Pode Perder' ? 'Contato direto, oferta especial' : c.segmento === 'Hibernando' ? 'E-mail de saudade + cupom' : c.segmento === 'Perdidos' ? 'Win-back com desconto forte' : 'Monitorar'
+              })),
+              loading: false
+            });
+          } catch (e) {
+            console.error('Erro RFM Shopify:', e);
+            setShopifyRFM(p => ({ ...p, loading: false }));
+          }
+        };
+        load();
+      }, [fonteAtiva]);
+
+      // Dados: Shopify real ou hardcoded
+      const clientesRFM = useMemo(() => {
+        if (fonteAtiva === 'shopify') return shopifyRFM.clientes;
+        return calcularRFM(CLIENTES_RFM);
+      }, [fonteAtiva, shopifyRFM.clientes]);
 
       // Agrupar por segmento
       const segmentos = useMemo(() => {
@@ -1330,7 +1375,19 @@
       };
 
       const totalClientes = clientesRFM.length;
-      const receitaTotal = clientesRFM.reduce((s, c) => s + c.totalGasto, 0);
+      const receitaTotal = clientesRFM.reduce((s, c) => s + (c.totalGasto || 0), 0);
+
+      // Loading state para Shopify
+      if (fonteAtiva === 'shopify' && shopifyRFM.loading) {
+        return (
+          <div className="flex items-center justify-center py-20">
+            <div className="text-center animate-pulse-slow">
+              <p className="text-4xl mb-4">🔄</p>
+              <p className="text-sm text-gray-500">Calculando RFM de 13.947 clientes Shopify...</p>
+            </div>
+          </div>
+        );
+      }
 
       return (
         <div className="space-y-6">
@@ -1734,6 +1791,11 @@
               Aplicando as ações sugeridas por cohort, estima-se recuperar 20-30% dos clientes em risco e aumentar a frequência dos regulares em 25%.
             </p>
           </div>
+
+          {/* Detail Modal */}
+          <DetailModal isOpen={modalOpen} onClose={() => setModalOpen(false)} title={modalTitle}>
+            {modalContent}
+          </DetailModal>
         </div>
       );
     };
