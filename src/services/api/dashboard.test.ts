@@ -63,7 +63,7 @@ describe('fetchDadosMes', () => {
     const fakeClientes = [{ mes: '2026-03', cliente_id: '1', nome: 'Test', email: null, cidade: null, uf: 'DF', total_pedidos: 1, total_gasto: 100 }]
     const fakeUfs = [{ mes: '2026-03', uf: 'DF', pedidos: 5, receita: 1000, clientes: 3 }]
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     mockFrom.mockImplementation((table: string) => ({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue({
@@ -79,7 +79,7 @@ describe('fetchDadosMes', () => {
   })
 
   it('throws when clientes query fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     mockFrom.mockImplementation((table: string) => ({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue(
@@ -94,7 +94,7 @@ describe('fetchDadosMes', () => {
   })
 
   it('throws when UF query fails', async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     mockFrom.mockImplementation((table: string) => ({
       select: vi.fn().mockReturnValue({
         eq: vi.fn().mockResolvedValue(

@@ -36,7 +36,7 @@ interface SelectedProduct {
 
 export default function ProdutosPage() {
   const [searchParams] = useSearchParams()
-  const fonteAtiva = searchParams.get('fonte')
+  const _fonteAtiva = searchParams.get('fonte')
 
   const [dateRange, setDateRange] = useState<DateRange>({ dataIni: '', dataFim: '' })
   const [selectedProduct, setSelectedProduct] = useState<SelectedProduct | null>(null)

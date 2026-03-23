@@ -1,5 +1,4 @@
-import { lazy } from 'react'
-import { Suspense } from 'react'
+import { lazy, Suspense, type ReactNode } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import { RouteErrorFallback } from '../components/ui/ErrorFallback'
@@ -23,7 +22,7 @@ const AnaliseIAPage = lazy(() => import('../pages/AnaliseIAPage'))
 const MetasPage = lazy(() => import('../pages/MetasPage'))
 const AlertasPage = lazy(() => import('../pages/AlertasPage'))
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
+function ProtectedRoute({ children }: { children: ReactNode }) {
   const { isAuthenticated, authLoading } = useAuth()
 
   if (authLoading) {

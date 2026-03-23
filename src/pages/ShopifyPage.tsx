@@ -31,7 +31,7 @@ interface ModalState {
 
 export default function ShopifyPage() {
   const [searchParams] = useSearchParams()
-  const fonteAtiva = searchParams.get('fonte')
+  const _fonteAtiva = searchParams.get('fonte')
 
   const { data: shopifyData, isLoading, isError } = useAllShopifyData()
 

@@ -427,10 +427,10 @@ export default function AnaliseTemporalPage({ periodo }: AnaliseTemporalProps = 
           {/* KPI Cards */}
           {periodosDados.some(Boolean) && (
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {periodosDados.map((p, idx) => {
+              {periodosDados.map((p, pIdx) => {
                 if (!p) return null
                 return (
-                  <SectionCard key={p.mes} title={`Periodo ${idx + 1}: ${formatMesLabel(p.mes)}`}>
+                  <SectionCard key={p.mes} title={`Periodo ${pIdx + 1}: ${formatMesLabel(p.mes)}`}>
                     <div className="space-y-3">
                       <div>
                         <div className="text-xs text-gray-500 dark:text-gray-400">Receita</div>
@@ -525,7 +525,7 @@ export default function AnaliseTemporalPage({ periodo }: AnaliseTemporalProps = 
                 <div className="mb-4 text-center text-sm text-gray-500">Carregando dados regionais...</div>
               )}
               <div className="grid grid-cols-1 gap-6 sm:grid-cols-3">
-                {periodosDados.map((p, idx) => {
+                {periodosDados.map((p, _idx) => {
                   if (!p) return null
                   const ufData = ufs[p.mes] || []
                   const maxUf = Math.max(...ufData.map((u) => u.receita || u.total || 0), 1)

@@ -46,7 +46,7 @@ interface FaseConfig {
 
 export default function MetasPage() {
   const [searchParams] = useSearchParams()
-  const fonteAtiva = searchParams.get('fonte')
+  const _fonteAtiva = searchParams.get('fonte')
 
   const [dateRange, setDateRange] = useState<DateRange>({ dataIni: '', dataFim: '' })
 

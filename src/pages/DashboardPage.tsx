@@ -14,7 +14,7 @@ import PieChart from '../components/charts/PieChart'
 export default function DashboardPage() {
   const { isAdmin } = useAuth()
   const [searchParams] = useSearchParams()
-  const fonteAtiva = searchParams.get('fonte') ?? 'bling'
+  const _fonteAtiva = searchParams.get('fonte') ?? 'bling'
 
   const { data: connected } = useConnectionStatus()
   const blingSync = usePlatformSync('bling')

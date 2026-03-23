@@ -44,7 +44,7 @@ export default function FunilPage() {
     load()
   }, [])
 
-  const { totalPedidos, receita, pedidosPagos } = useMemo(() => {
+  const { totalPedidos: _totalPedidos, receita, pedidosPagos } = useMemo(() => {
     const total = pedidos.length
     const pagos = pedidos.filter(
       (p) => (p.status_financeiro || '').toLowerCase() === 'paid'
