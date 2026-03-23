@@ -1,7 +1,9 @@
 import { lazy } from 'react'
+import { Suspense } from 'react'
 import { createBrowserRouter, Navigate } from 'react-router-dom'
 import AppLayout from '../components/layout/AppLayout'
 import { RouteErrorFallback } from '../components/ui/ErrorFallback'
+import Spinner from '../components/ui/Spinner'
 import { useAuth } from '../hooks/useAuth'
 
 // Lazy-load all pages
@@ -42,7 +44,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
 }
 
 export const router = createBrowserRouter([
-  { path: '/login', element: <LoginPage /> },
+  { path: '/login', element: <Suspense fallback={<Spinner />}><LoginPage /></Suspense> },
   {
     path: '/app',
     element: <ProtectedRoute><AppLayout /></ProtectedRoute>,

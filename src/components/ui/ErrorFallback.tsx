@@ -34,5 +34,10 @@ export function RouteErrorFallback() {
       ? routeError.message
       : 'Erro inesperado'
 
-  return <ErrorFallback message={message} />
+  return (
+    <ErrorFallback
+      message={message}
+      resetErrorBoundary={() => window.location.reload()}
+    />
+  )
 }
