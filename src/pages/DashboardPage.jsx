@@ -58,6 +58,21 @@ export default function DashboardPage({ onDataApplied, isAdmin, fonteAtiva }) {
     }
   }
 
+  const handleRDStationSync = async () => {
+    setSyncLoading((prev) => ({ ...prev, rdstation: true }))
+    setSyncStatus((prev) => ({ ...prev, rdstation: null }))
+    try {
+      const res = await fetch(`${SUPABASE_URL}/functions/v1/rdstation-sync?tipo=all`)
+      const data = await res.json()
+      setSyncStatus((prev) => ({ ...prev, rdstation: data }))
+      if (onDataApplied) onDataApplied('rdstation', data)
+    } catch (err) {
+      setSyncStatus((prev) => ({ ...prev, rdstation: { error: err.message } }))
+    } finally {
+      setSyncLoading((prev) => ({ ...prev, rdstation: false }))
+    }
+  }
+
   const handleFileImport = () => {
     if (onDataApplied) onDataApplied('file', null)
   }
@@ -83,7 +98,7 @@ export default function DashboardPage({ onDataApplied, isAdmin, fonteAtiva }) {
       {/* ═══ ADMIN: API Integrations ═══ */}
       {isAdmin ? (
         <SectionCard title="Integrações de Dados">
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Bling */}
             <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
               <div className="mb-2 flex items-center gap-2">
@@ -146,6 +161,29 @@ export default function DashboardPage({ onDataApplied, isAdmin, fonteAtiva }) {
               {syncStatus.shopify && (
                 <p className={`mt-2 text-xs ${syncStatus.shopify.error ? 'text-red-500' : 'text-green-600'}`}>
                   {syncStatus.shopify.error || 'Sincronizado com sucesso'}
+                </p>
+              )}
+            </div>
+
+            {/* RD Station */}
+            <div className="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+              <div className="mb-2 flex items-center gap-2">
+                <span className="text-lg font-bold text-gray-800 dark:text-gray-100">RD Station</span>
+                <Badge type="medio">CRM</Badge>
+              </div>
+              <p className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                CRM — negocios, contatos, pipeline
+              </p>
+              <button
+                onClick={handleRDStationSync}
+                disabled={syncLoading.rdstation}
+                className="rounded-md bg-purple-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-purple-700 transition-colors disabled:opacity-50"
+              >
+                {syncLoading.rdstation ? 'Sincronizando...' : 'Sincronizar'}
+              </button>
+              {syncStatus.rdstation && (
+                <p className={`mt-2 text-xs ${syncStatus.rdstation.error ? 'text-red-500' : 'text-green-600'}`}>
+                  {syncStatus.rdstation.error || 'Sincronizado com sucesso'}
                 </p>
               )}
             </div>

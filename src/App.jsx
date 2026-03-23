@@ -20,6 +20,7 @@ import FunilPage from './pages/FunilPage'
 import AnaliseIAPage from './pages/AnaliseIAPage'
 import MetasPage from './pages/MetasPage'
 import AlertasPage from './pages/AlertasPage'
+import CRMPage from './pages/CRMPage'
 
 const SECTIONS = [
   { id: 'dashboard', label: 'Dashboard', icon: '📊' },
@@ -31,6 +32,7 @@ const SECTIONS = [
   { id: 'produtos', label: 'Produtos', icon: '📦' },
   { id: 'temporal', label: 'Análise Temporal', icon: '📈' },
   { id: 'shopify', label: 'Shopify', icon: '🟢' },
+  { id: 'crm', label: 'CRM', icon: '📞' },
   { id: 'funil', label: 'Funil', icon: '🔻' },
   { id: 'analise', label: 'Análise IA', icon: '🤖' },
   { id: 'metas', label: 'Metas 90 Dias', icon: '🎯' },
@@ -120,6 +122,8 @@ export default function App() {
         return <AnaliseTemporalPage {...pageProps} />
       case 'shopify':
         return <ShopifyPage {...pageProps} />
+      case 'crm':
+        return <CRMPage {...pageProps} />
       case 'funil':
         return <FunilPage {...pageProps} />
       case 'analise':

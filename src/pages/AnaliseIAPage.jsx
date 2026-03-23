@@ -1,4 +1,5 @@
-import { useState, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
+import { supabase } from '../lib/supabase';
 import { DADOS } from '../data/constants';
 import { formatCurrency, formatNumber, formatPercent } from '../lib/formatters';
 import SectionCard from '../components/ui/SectionCard';
@@ -24,18 +25,33 @@ const scoreBarBg = (v) =>
 const BREAKEVEN = DADOS.custos.totalFixo + DADOS.custos.totalVariavel +
   DADOS.custos.totalFinanceiro + DADOS.custos.impostos;
 
-/* ─── CRM Constants (RD Station not yet in Supabase) ─── */
-const CRM = {
+/* ─── CRM Fallback + Live Data ─── */
+const CRM_FALLBACK = {
   criadas: 284, vendidas: 132, perdidas: 266,
   valorPerdido: 169000, valorVendido: 58935,
   ticketCRM: 447, ticketSite: 177,
   baseClientes: 49088, taxaRecompra: 44.2
 };
 
+function getCRMData(crmDashData) {
+  if (!crmDashData || !crmDashData.total_criadas) return CRM_FALLBACK;
+  return {
+    criadas: crmDashData.total_criadas,
+    vendidas: crmDashData.total_vendidas,
+    perdidas: crmDashData.total_perdidas,
+    valorPerdido: crmDashData.valor_perdido,
+    valorVendido: crmDashData.valor_vendido,
+    ticketCRM: crmDashData.ticket_medio,
+    ticketSite: 177,
+    baseClientes: crmDashData.total_contatos || 49088,
+    taxaRecompra: 44.2
+  };
+}
+
 /* ═══════════════════════════════════════════ */
 /* 1. PAINEL SINAIS VITAIS                    */
 /* ═══════════════════════════════════════════ */
-function PainelSinaisVitais({ dados }) {
+function PainelSinaisVitais({ dados, crm }) {
   const scores = useMemo(() => {
     const deficitPercent = Math.abs(dados.dre.resultado) / dados.receita.bruta * 100;
     const saudeScore = deficitPercent > 50 ? 2 : deficitPercent > 30 ? 4 : deficitPercent > 10 ? 6 : 8;
@@ -51,15 +67,19 @@ function PainelSinaisVitais({ dados }) {
     const alertasCriticos = dados.alertas.filter(a => a.tipo === 'critico').length;
     const gestaoScore = alertasCriticos >= 3 ? 3 : alertasCriticos === 2 ? 4 : alertasCriticos === 1 ? 6 : 8;
 
+    const c = crm || CRM_FALLBACK;
+    const crmWinRate = c.vendidas / (c.vendidas + c.perdidas) * 100;
+    const crmScore = crmWinRate > 50 ? 7 : crmWinRate > 30 ? 5 : 3;
+
     return [
       { nome: 'Saude financeira', score: saudeScore, desc: `Deficit de ${formatCurrency(Math.abs(dados.dre.resultado))}/mes` },
-      { nome: 'Comercial / CRM', score: 5, desc: 'R$ 169k perdidos vs R$ 58k vendidos/mes' },
+      { nome: 'Comercial / CRM', score: crmScore, desc: `${formatCurrency(c.valorPerdido)} perdidos vs ${formatCurrency(c.valorVendido)} vendidos/mes` },
       { nome: 'E-commerce', score: ecommerceScore, desc: `Receita ${formatPercent(dados.comparativo.variacaoReceita)} vs mes anterior` },
       { nome: 'Portfolio', score: portfolioScore, desc: `${rupturaPercent.toFixed(0)}% dos SKUs sem estoque` },
       { nome: 'Base de clientes', score: recompraScore, desc: `${dados.empresa.taxaRecompra}% recompra — ${formatNumber(dados.empresa.baseClientes)} clientes` },
       { nome: 'Gestao operacional', score: gestaoScore, desc: `${alertasCriticos} alertas criticos ativos` },
     ];
-  }, [dados]);
+  }, [dados, crm]);
 
   return (
     <SectionCard title="Sinais Vitais">
@@ -201,7 +221,7 @@ function DiagnosticoFinanceiro({ dados }) {
 /* ═══════════════════════════════════════════ */
 /* 3. ANALISE CRM                             */
 /* ═══════════════════════════════════════════ */
-function AnaliseCRM({ dados }) {
+function AnaliseCRM({ dados, crm: CRM }) {
   const cenarios = [10, 20, 30, 50].map(pct => ({
     pct,
     acao: `Recuperar ${pct}% das perdas`,
@@ -502,7 +522,7 @@ function MatrizGaps({ dados }) {
 /* ═══════════════════════════════════════════ */
 /* 6. SIMULADOR DE RECEITA                    */
 /* ═══════════════════════════════════════════ */
-function SimuladorReceita({ dados }) {
+function SimuladorReceita({ dados, crm: crmData }) {
   const [sim, setSim] = useState({
     taxaConversao: 1.8,
     recuperacaoCRM: 20,
@@ -512,20 +532,22 @@ function SimuladorReceita({ dados }) {
     crescimentoOrganico: 10
   });
 
+  const valorPerdidoCRM = (crmData || CRM_FALLBACK).valorPerdido;
+
   const resultado = useMemo(() => {
     const sessoes = 24973;
     const ticket = dados.receita.ticketMedio;
     const base = dados.receita.bruta;
 
     const cro = Math.max(0, (sim.taxaConversao / 100 - 0.005) * sessoes * ticket);
-    const crm = 169000 * sim.recuperacaoCRM / 100;
+    const crm = valorPerdidoCRM * sim.recuperacaoCRM / 100;
     const reativ = (dados.empresa.baseClientes * sim.reativacaoBase / 100) * ticket;
     const b2b = sim.clientesB2B * sim.ticketB2B;
     const org = base * sim.crescimentoOrganico / 100;
     const total = base + cro + crm + reativ + b2b + org;
 
     return { base, cro, crm, reativ, b2b, org, total };
-  }, [sim, dados]);
+  }, [sim, dados, valorPerdidoCRM]);
 
   const meta = 150000;
   const progressPct = Math.min((resultado.total / meta) * 100, 100);
@@ -694,6 +716,16 @@ function PlanoAcao() {
 export default function AnaliseIAPage({ dados: propDados }) {
   const dados = propDados || DADOS;
 
+  // Load live CRM data from Supabase RPC (falls back to hardcoded)
+  const [crmDash, setCrmDash] = useState(null);
+  useEffect(() => {
+    supabase.rpc('rdstation_dashboard_periodo', {
+      data_ini: '2020-01-01',
+      data_fim: new Date().toISOString().slice(0, 10)
+    }).then(({ data }) => { if (data) setCrmDash(data); }).catch(() => {});
+  }, []);
+  const CRM = getCRMData(crmDash);
+
   return (
     <div className="space-y-6 animate-slide-up">
       <div className="flex items-center gap-3 mb-2">
@@ -701,14 +733,19 @@ export default function AnaliseIAPage({ dados: propDados }) {
         <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400">
           Auto-gerado
         </span>
+        {crmDash && (
+          <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400">
+            CRM ao vivo
+          </span>
+        )}
       </div>
 
-      <PainelSinaisVitais dados={dados} />
+      <PainelSinaisVitais dados={dados} crm={CRM} />
       <DiagnosticoFinanceiro dados={dados} />
-      <AnaliseCRM dados={dados} />
+      <AnaliseCRM dados={dados} crm={CRM} />
       <AnalisePortfolio dados={dados} />
       <MatrizGaps dados={dados} />
-      <SimuladorReceita dados={dados} />
+      <SimuladorReceita dados={dados} crm={CRM} />
       <PlanoAcao />
     </div>
   );
