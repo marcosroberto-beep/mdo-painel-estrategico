@@ -90,6 +90,14 @@ export interface CRMData {
   saude: CRMSaude;
 }
 
+// ── Seed Data Wrapper ────────────────────────────────────────
+
+/** Wrapper to mark demo/seed data — used by fallback when APIs are unavailable */
+export interface SeedData<T> {
+  data: T;
+  isDemoData: true;
+}
+
 // ── Navigation ───────────────────────────────────────────────
 
 export interface NavigationSection {
