@@ -7,6 +7,7 @@
 export interface VwResumoMensal {
   mes: string;
   receita_bruta: number;
+  receita_total: number;
   pedidos: number;
   ticket_medio: number;
   clientes_ativos: number;
@@ -56,7 +57,7 @@ export interface ShopifyPedido {
   uf: string | null;
   cidade: string | null;
   canal: string | null;
-  itens: unknown | null;
+  itens: Array<{ sku: string; titulo: string; quantidade: number; preco: number }> | null;
   created_at: string;
   updated_at: string;
 }

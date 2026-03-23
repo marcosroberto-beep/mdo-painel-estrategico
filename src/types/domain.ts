@@ -17,6 +17,14 @@ export interface KPIData {
   onClick?: () => void;
 }
 
+// ── Badge ────────────────────────────────────────────────────
+
+export type BadgeType = 'critico' | 'alto' | 'medio' | 'baixo' | 'positivo';
+
+// ── Database Status ──────────────────────────────────────────
+
+export type DbStatus = 'conectando' | 'conectado' | 'vazio' | 'offline';
+
 // ── CRM Types ────────────────────────────────────────────────
 
 export interface FunilEtapa {
