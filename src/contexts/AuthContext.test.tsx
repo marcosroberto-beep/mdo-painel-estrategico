@@ -1,10 +1,8 @@
 import { describe, it, expect, vi } from 'vitest'
 import { renderHook, act } from '@testing-library/react'
-import { createContext, useContext, type ReactNode } from 'react'
+import { useContext, type ReactNode } from 'react'
 
-// Since both AuthContext.jsx and AuthContext.tsx exist, we need to mock supabase
-// for both resolution paths. The .jsx imports from ../lib/supabase while .tsx
-// imports from ../services/supabase.
+// Mock supabase before importing AuthContext
 vi.mock('../services/supabase', () => ({
   supabase: {
     auth: {
@@ -20,58 +18,32 @@ vi.mock('../services/supabase', () => ({
   supabaseUrl: 'https://test.supabase.co',
 }))
 
-vi.mock('../lib/supabase', () => ({
-  supabase: {
-    auth: {
-      getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
-      onAuthStateChange: vi.fn().mockReturnValue({
-        data: { subscription: { unsubscribe: vi.fn() } },
-      }),
-      signInWithPassword: vi.fn(),
-      signOut: vi.fn(),
-    },
-    from: vi.fn(),
-  },
-}))
-
 vi.mock('../services/api/auth', () => ({
   fetchUserProfile: vi.fn().mockResolvedValue(null),
 }))
 
-// Create our own context to test the pattern, since module resolution
-// picks the .jsx over .tsx when both exist
-interface AuthContextType {
-  user: null
-  isAuthenticated: boolean
-  isAdmin: boolean
-}
+import { AuthProvider, AuthContext, type AuthContextType } from './AuthContext'
 
-const TestAuthContext = createContext<AuthContextType | null>(null)
-
-function useTestAuth(): AuthContextType {
-  const context = useContext(TestAuthContext)
+function useAuthDirect(): AuthContextType {
+  const context = useContext(AuthContext)
   if (!context) {
     throw new Error('useAuth must be used within AuthProvider')
   }
   return context
 }
 
-function TestAuthProvider({ children }: { children: ReactNode }) {
-  const value: AuthContextType = {
-    user: null,
-    isAuthenticated: false,
-    isAdmin: false,
-  }
-  return <TestAuthContext.Provider value={value}>{children}</TestAuthContext.Provider>
+function wrapper({ children }: { children: ReactNode }) {
+  return <AuthProvider>{children}</AuthProvider>
 }
 
 describe('AuthContext', () => {
-  it('starts unauthenticated', () => {
-    const wrapper = ({ children }: { children: ReactNode }) => (
-      <TestAuthProvider>{children}</TestAuthProvider>
-    )
+  it('starts unauthenticated', async () => {
+    const { result } = renderHook(() => useAuthDirect(), { wrapper })
 
-    const { result } = renderHook(() => useTestAuth(), { wrapper })
+    // Wait for async getSession effect to settle
+    await act(async () => {
+      await new Promise(resolve => setTimeout(resolve, 50))
+    })
 
     expect(result.current.user).toBeNull()
     expect(result.current.isAuthenticated).toBe(false)
@@ -80,7 +52,7 @@ describe('AuthContext', () => {
 
   it('throws when used outside provider', () => {
     expect(() => {
-      renderHook(() => useTestAuth())
+      renderHook(() => useAuthDirect())
     }).toThrow('useAuth must be used within AuthProvider')
   })
 })

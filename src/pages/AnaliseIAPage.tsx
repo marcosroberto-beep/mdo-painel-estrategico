@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../services/supabase'
 import { DADOS } from '../data/seed'
 import { formatCurrency, formatNumber, formatPercent } from '../lib/formatters'
 import SectionCard from '../components/ui/SectionCard'

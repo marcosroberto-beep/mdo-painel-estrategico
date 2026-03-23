@@ -1,6 +1,6 @@
 import { useState, useMemo, useEffect } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { supabase } from '../lib/supabase'
+import { supabase } from '../services/supabase'
 import { DADOS } from '../data/seed'
 import { formatCurrency } from '../lib/formatters'
 import SectionCard from '../components/ui/SectionCard'
