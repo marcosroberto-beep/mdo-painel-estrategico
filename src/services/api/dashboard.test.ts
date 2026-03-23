@@ -1,0 +1,110 @@
+import { describe, it, expect, vi, beforeEach } from 'vitest'
+
+// Mock the supabase module before importing the functions under test
+vi.mock('../supabase', () => ({
+  supabase: {
+    from: vi.fn(),
+  },
+  supabaseUrl: 'https://test.supabase.co',
+}))
+
+import { fetchResumoMensal, fetchDadosMes } from './dashboard'
+import { supabase } from '../supabase'
+
+const mockFrom = vi.mocked(supabase.from)
+
+describe('fetchResumoMensal', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns typed data on success', async () => {
+    const fakeRows = [
+      { mes: '2026-03', receita_bruta: 50000, receita_total: 45000, pedidos: 100, ticket_medio: 450, clientes_ativos: 80, novos_clientes: 10, taxa_recompra: 44, custo_total: 30000, resultado: 15000 },
+    ]
+
+    const mockOrder = vi.fn().mockResolvedValue({ data: fakeRows, error: null })
+    const mockSelect = vi.fn().mockReturnValue({ order: mockOrder })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockFrom.mockReturnValue({ select: mockSelect } as any)
+
+    const result = await fetchResumoMensal()
+    expect(result).toEqual(fakeRows)
+    expect(result).toHaveLength(1)
+    expect(result[0].mes).toBe('2026-03')
+  })
+
+  it('returns empty array when data is null', async () => {
+    const mockOrder = vi.fn().mockResolvedValue({ data: null, error: null })
+    const mockSelect = vi.fn().mockReturnValue({ order: mockOrder })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockFrom.mockReturnValue({ select: mockSelect } as any)
+
+    const result = await fetchResumoMensal()
+    expect(result).toEqual([])
+  })
+
+  it('throws on supabase error', async () => {
+    const mockOrder = vi.fn().mockResolvedValue({ data: null, error: { message: 'connection lost' } })
+    const mockSelect = vi.fn().mockReturnValue({ order: mockOrder })
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    mockFrom.mockReturnValue({ select: mockSelect } as any)
+
+    await expect(fetchResumoMensal()).rejects.toThrow('Erro ao carregar resumo mensal: connection lost')
+  })
+})
+
+describe('fetchDadosMes', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  it('returns clientes and estados on success', async () => {
+    const fakeClientes = [{ mes: '2026-03', cliente_id: '1', nome: 'Test', email: null, cidade: null, uf: 'DF', total_pedidos: 1, total_gasto: 100 }]
+    const fakeUfs = [{ mes: '2026-03', uf: 'DF', pedidos: 5, receita: 1000, clientes: 3 }]
+
+     
+    mockFrom.mockImplementation((table: string) => ({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue({
+          data: table === 'vw_clientes_mes' ? fakeClientes : fakeUfs,
+          error: null,
+        }),
+      }),
+    }) as any)
+
+    const result = await fetchDadosMes('2026-03')
+    expect(result.clientes).toEqual(fakeClientes)
+    expect(result.estados).toEqual(fakeUfs)
+  })
+
+  it('throws when clientes query fails', async () => {
+     
+    mockFrom.mockImplementation((table: string) => ({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue(
+          table === 'vw_clientes_mes'
+            ? { data: null, error: { message: 'clientes error' } }
+            : { data: [], error: null }
+        ),
+      }),
+    }) as any)
+
+    await expect(fetchDadosMes('2026-03')).rejects.toThrow('Erro ao carregar clientes do mês: clientes error')
+  })
+
+  it('throws when UF query fails', async () => {
+     
+    mockFrom.mockImplementation((table: string) => ({
+      select: vi.fn().mockReturnValue({
+        eq: vi.fn().mockResolvedValue(
+          table === 'vw_uf_mensal'
+            ? { data: null, error: { message: 'uf error' } }
+            : { data: [], error: null }
+        ),
+      }),
+    }) as any)
+
+    await expect(fetchDadosMes('2026-03')).rejects.toThrow('Erro ao carregar UFs do mês: uf error')
+  })
+})
