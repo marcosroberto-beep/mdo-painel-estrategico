@@ -16,7 +16,7 @@ Complete refactoring of the MDO Painel Estrategico dashboard from JavaScript to 
 4. **No URL routing** — `activeSection` state string; refresh loses page; no browser history
 5. **Mixed concerns** — DashboardPage contains KPIs + OAuth + sync logic + admin controls (390 lines)
 6. **No types** — No PropTypes or TypeScript; prop shapes undocumented
-7. **Duplicate fetching** — Multiple hooks fetch overlapping data with no cache or deduplication. Notably, `useRDStationData` (loaded in App) and `CRMPage` both independently fetch from `rdstation_deals` and `rdstation_contacts`.
+7. **Duplicate fetching** — Multiple hooks fetch overlapping data with no cache or deduplication. `useRDStationData` (loaded in App) queries Supabase `rdstation_*` tables, while `CRMPage` independently fetches via `supabase.rpc('rdstation_dashboard_periodo')` and falls back to the RD Station REST API directly (`https://crm.rdstation.com/api/v1/deals`).
 8. **Dead code** — `showUserMgmt` state, unused props, Recharts installed but not used
 9. **No tests** — Zero test files or test infrastructure
 10. **No error boundaries** — Single error in any page crashes entire app
@@ -273,10 +273,14 @@ Replace conditional class strings (`darkMode ? 'bg-gray-900' : 'bg-gray-50'`) wi
 
 ### CRMPage Migration Notes
 
-`CRMPage.jsx` is self-contained: it does NOT use `useRDStationData` hook. Instead, it directly calls `supabase.from('rdstation_deals')` and `supabase.from('rdstation_contacts')`, and has ~80 lines of inline `CRM_FALLBACK` data. During migration:
-- Extract its Supabase calls into `services/api/rdstation.ts` (shared with the hook's queries)
+`CRMPage.jsx` is self-contained: it does NOT use `useRDStationData` hook. Instead, it uses two data paths:
+1. **Primary:** `supabase.rpc('rdstation_dashboard_periodo')` — a Supabase RPC call to a server-side function
+2. **Fallback:** Direct RD Station REST API calls (`https://crm.rdstation.com/api/v1/deals`, `/deal_stages`) with token management
+
+It also has ~80 lines of inline `CRM_FALLBACK` data. During migration:
+- `services/api/rdstation.ts` must handle BOTH the Supabase RPC path AND the direct REST API fallback with token management
 - Move `CRM_FALLBACK` into `data/seed.ts`
-- Use `useRDStationQueries` hooks instead of direct calls — TanStack Query deduplicates automatically
+- Use `useRDStationQueries` hooks with the dual-path logic encapsulated in the service layer
 
 ### DashboardPage Migration Notes
 
@@ -305,7 +309,7 @@ Big Bang approach on a separate branch:
 1. Setup TypeScript (`tsconfig.json` with `strict: true`), TanStack Query, Vitest configs
 2. Add `.env` + `.env.example` + update `.gitignore`; move credentials out of source
 3. Create `types/` with all interfaces
-4. Create `services/supabase.ts` (env vars) and `services/api/` layer (extract from hooks/pages, including CRMPage's direct calls)
+4. Create `services/supabase.ts` (env vars) and `services/api/` layer (extract from hooks/pages, including CRMPage's RPC + REST API dual-path logic)
 5. Create `services/queries/` layer (TanStack Query hooks)
 6. Migrate contexts to TypeScript; update ThemeContext to use Tailwind `dark:` class strategy
 7. Setup React Router with layout route and `ProtectedRoute` (depends on AuthContext)
